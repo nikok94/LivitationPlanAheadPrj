@@ -1,0 +1,10 @@
+*.jou
+*.log
+*.backup
+/**/prj/*
+
+/**/src/blk_mem_gen_v7_3_0/*
+!/**/src/blk_mem_gen_v7_3_0/sin_mem.xci
+
+/**/src/blk_mem_gen_v7_3_1/*
+!/**/src/blk_mem_gen_v7_3_1/get_param_mem.xci
