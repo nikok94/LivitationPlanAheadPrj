@@ -4,7 +4,7 @@
 #
 
 set root_dir [ file normalize [file dirname [info script]]/../ ]
-set device "xc6slx9tqg144-2"
+set device "xc6slx16ftg256-2"
 set prj_name "SFTI_Livitation"
 set language "VHDL"
 
@@ -22,6 +22,7 @@ set_property "target_language" "VHDL" $obj
 ########################################################################
 # Sources
 add_files -norecurse ../src/antenn_array_x16_control.vhd
+add_files -norecurse ../src/antenn_array_x32_control.vhd
 add_files -norecurse ../src/clock_generator.vhd
 add_files -norecurse ../src/fifo_non_simetric.vhd
 add_files -norecurse ../src/Top.vhd
@@ -29,6 +30,7 @@ add_files -norecurse ../src/UART_RX.vhd
 add_files -norecurse ../src/UART_TX.vhd
 add_files -norecurse ../src/blk_mem_gen_v7_3_0/sin_mem.xci
 add_files -norecurse ../src/blk_mem_gen_v7_3_1/get_param_mem.xci
+add_files -norecurse ../src/proc_common_pkg.vhd
 
 ########################################################################
 # UCF

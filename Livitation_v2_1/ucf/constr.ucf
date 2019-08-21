@@ -19,6 +19,9 @@ NET "sys_clk" LOC = A10;
 NET "sys_clk" TNM_NET = "CLK1";
 TIMESPEC TS_CLK1 = PERIOD "CLK1" 20 ns HIGH 50 %;
 
+NET "clk_gen_ist/clk_out" TNM_NET = "CLK_MAIN";
+TIMESPEC TS_CLK_MAIN = PERIOD "CLK_MAIN" 5 ns HIGH 50 %;
+
 NET "leds_out[0]" LOC = T9;
 NET "leds_out[1]" LOC = R9;
 NET "button1_in" LOC = R7;
@@ -44,3 +47,4 @@ NET "ant_array1_addr[3]" LOC = M13;
 
 
 NET "u_tx" IOSTANDARD = LVCMOS33;
+AREA_GROUP "pblock_1" RANGE=SLICE_X22Y27:SLICE_X29Y31;

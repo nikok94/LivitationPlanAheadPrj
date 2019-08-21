@@ -29,8 +29,9 @@ library work;
 use work.clock_generator;
 use work.UART_RX;
 use work.UART_TX;
-use work.antenn_array_x16_control;
-use work.my_std_mem.all;
+use work.antenn_array_x32_control;
+--use work.antenn_array_x16_control;
+--use work.my_std_mem.all;
 
 entity Top is
     Port ( 
@@ -48,7 +49,7 @@ entity Top is
 end Top;
 
 architecture Behavioral of Top is
-    constant c_freq_hz          : integer := 125000000;
+    constant c_freq_hz          : integer := 180_000_000;
     constant c_boad_rate        : integer := 230400;
     constant g_CLKS_PER_BIT     : integer := c_freq_hz/c_boad_rate;
     type state_machine          is (idle, read_command, send_confirm, load_sinus, load_param1, load_param1_cont);
@@ -65,7 +66,7 @@ architecture Behavioral of Top is
     signal led2                 : std_logic;
     signal pll_clk0             : std_logic;
     signal tst_data             : std_logic_vector(15 downto 0);
-    signal clk_125MHz           : std_logic;
+    signal clk                  : std_logic;
     signal rst_uart             : std_logic;
     signal start_en             : std_logic:= '0';
     signal confirm_byte         : std_logic_vector(7 downto 0);
@@ -80,13 +81,12 @@ architecture Behavioral of Top is
     signal uart_rx_byte         : std_logic_vector(7 downto 0);
     signal uart_rx_byte_valid   : std_logic;
     signal contrl_reg           : std_logic_vector(7 downto 0);
-    signal param_mem_adda       : std_logic_vector(10-1 downto 0);
+    signal param_mem_adda       : std_logic_vector(10 downto 0);
     signal param_mem_dina       : std_logic_vector(7 downto 0);
     signal param_mem_wea        : std_logic;
     signal antenn_data_valid    : std_logic;
     signal param_mem_load       : std_logic;
-    signal sin_data_buff        : sim_mem_type;
-    signal antenn_addr          : std_logic_vector(3 downto 0);
+    signal antenn_addr          : std_logic_vector(4 downto 0);
 
 begin
 
@@ -98,7 +98,7 @@ uart_rx_inst :  entity UART_RX
     g_CLKS_PER_BIT => g_CLKS_PER_BIT
     )
   port map(
-    i_Clk           => clk_125MHz,
+    i_Clk           => clk,
     i_RX_Serial     => u_rx,
     o_RX_DV         => uart_rx_byte_valid,
     o_RX_Byte       => uart_rx_byte
@@ -109,7 +109,7 @@ uart_tx_inst :  entity UART_TX
     g_CLKS_PER_BIT  => g_CLKS_PER_BIT
     )
   port map(
-    i_Clk           => clk_125MHz,
+    i_Clk           => clk,
     i_TX_DV         => confirm_push_en,
     i_TX_Byte       => contrl_reg,
     o_TX_Active     => open,
@@ -118,9 +118,9 @@ uart_tx_inst :  entity UART_TX
     );
 
 button1_push_proc :
-  process(clk_125MHz)
+  process(clk)
   begin 
-    if rising_edge(clk_125MHz) then
+    if rising_edge(clk) then
       button1_in_d(3 downto 1) <= button1_in_d(2 downto 0);
       button1_in_d(0) <= button1_in;
       
@@ -135,9 +135,9 @@ button1_push_proc :
   end process;
 
 rst_proc :
-  process(clk_125MHz)
+  process(clk)
   begin
-    if rising_edge(clk_125MHz) then
+    if rising_edge(clk) then
       if push_counter = x"ff" then
         rst <= not button1_in;
       else
@@ -151,16 +151,16 @@ clk_gen_ist : entity clock_generator
       clk_in        => sys_clk,
       rst_in        => gnd,
       pll_lock      => open,
-      clk_out_125MHz=> clk_125MHz,
+      clk_out       => clk,
       rst_out       => leds_out(0)
     );
 
 leds_out(1) <= not start_en;
 
 command_byte_proc :
-  process(clk_125MHz)
+  process(clk)
   begin 
-    if rising_edge(clk_125MHz) then
+    if rising_edge(clk) then
       if (uart_rx_byte_valid = '1') and (state = read_command) then
         case uart_rx_byte is
           when "00000000" =>
@@ -175,9 +175,9 @@ command_byte_proc :
   end process;
 
 sin_mem_adda_proc :
-  process(clk_125MHz)
+  process(clk)
   begin 
-    if rising_edge(clk_125MHz) then
+    if rising_edge(clk) then
       if (state = idle) then
         sin_mem_adda <= (others => '0');
       elsif (state = load_sinus) then
@@ -189,9 +189,9 @@ sin_mem_adda_proc :
   end process;
 
 param_mem_adda_proc :
-  process(clk_125MHz)
+  process(clk)
   begin 
-    if rising_edge(clk_125MHz) then
+    if rising_edge(clk) then
       if (state = idle) then
         param_mem_adda <= (others => '0');
       elsif (state = load_param1) then
@@ -203,9 +203,9 @@ param_mem_adda_proc :
   end process;
 
 sync_proc :
-  process(clk_125MHz)
+  process(clk)
   begin
-    if rising_edge(clk_125MHz) then
+    if rising_edge(clk) then
       if rst = '1' then 
         state <= idle;
       else
@@ -263,7 +263,7 @@ next_state_proc :
             next_state <= send_confirm;
           end if;
         when load_param1 => 
-          if (param_mem_adda(9) = '1') then
+          if (param_mem_adda(param_mem_adda'length - 1) = '1') then
             next_state <= load_param1_cont;
           end if;
         when load_param1_cont => 
@@ -273,16 +273,22 @@ next_state_proc :
       end case;
   end process;
 
-
-antenn_array_x16_control_inst : entity antenn_array_x16_control 
+antenn_array_x32_control_inst : entity antenn_array_x32_control 
+    generic map(
+      c_sin_data_width              => 2048,
+      c_num_emitter                 => 32,
+      c_sin_points_per_period       => 16,
+      c_num_harmonics               => 8,
+      c_emitter_center_freq_hz      => 40_000,
+      c_clk_freq_hz                 => c_freq_hz
+    )
     Port map( 
-      clk                           => clk_125MHz,
-      --rst                           => rst,
+      clk                           => clk,
       sin_mem_wea                   => sin_mem_wea,
       sin_mem_addra                 => sin_mem_adda(10 downto 0),
       sin_mem_dina                  => uart_rx_byte,
       en                            => start_en,
-      param_mem_adda                => param_mem_adda(8 downto 0),
+      param_mem_adda                => param_mem_adda(param_mem_adda'length - 2 downto 0),
       param_mem_dina                => uart_rx_byte,
       param_mem_wea                 => param_mem_wea,
       param_mem_load                => param_mem_load,
@@ -290,6 +296,24 @@ antenn_array_x16_control_inst : entity antenn_array_x16_control
       antenn_data                   => ant_array1_data,
       antenn_data_valid             => antenn_data_valid
     );
-ant_array1_addr <= antenn_addr;
+
+
+--antenn_array_x16_control_inst : entity antenn_array_x16_control 
+--    Port map( 
+--      clk                           => clk,
+--      --rst                           => rst,
+--      sin_mem_wea                   => sin_mem_wea,
+--      sin_mem_addra                 => sin_mem_adda(10 downto 0),
+--      sin_mem_dina                  => uart_rx_byte,
+--      en                            => start_en,
+--      param_mem_adda                => param_mem_adda(8 downto 0),
+--      param_mem_dina                => uart_rx_byte,
+--      param_mem_wea                 => param_mem_wea,
+--      param_mem_load                => param_mem_load,
+--      antenn_addr                   => antenn_addr,
+--      antenn_data                   => ant_array1_data,
+--      antenn_data_valid             => antenn_data_valid
+--    );
+ant_array1_addr <= antenn_addr(3 downto 0);
 
 end Behavioral;
