@@ -49,7 +49,7 @@ entity Top is
 end Top;
 
 architecture Behavioral of Top is
-    constant c_freq_hz          : integer := 180_000_000;
+    constant c_freq_hz          : integer := 200_000_000;
     constant c_boad_rate        : integer := 230400;
     constant g_CLKS_PER_BIT     : integer := c_freq_hz/c_boad_rate;
     type state_machine          is (idle, read_command, send_confirm, load_sinus, load_param1, load_param1_cont);
