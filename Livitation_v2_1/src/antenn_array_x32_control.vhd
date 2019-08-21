@@ -61,6 +61,7 @@ architecture Behavioral of antenn_array_x32_control is
     signal sin_mem_b_addr           : std_logic_vector(c_sin_mem_addr_length - 1 downto 0):= (others => '0');
     signal freq_step                : std_logic_vector(c_sin_mem_addr_length - 1 downto 0):= (others => '0');
     signal ampl_byte                : std_logic_vector(7 downto 0):=(others => '0');
+    signal ampl_byte_d              : std_logic_vector(7 downto 0):=(others => '0');
     signal amp_mult_sin_byte        : std_logic_vector(15 downto 0);
     signal new_param_wr_en          : std_logic;
     signal get_param_wea            : std_logic;
@@ -78,6 +79,7 @@ architecture Behavioral of antenn_array_x32_control is
     signal data_summ_en             : std_logic;
     signal data_out                 : std_logic_vector(8 downto 0);
     signal new_param_wr_en_d        : std_logic;
+    signal new_param_wr_en_d1       : std_logic;
     signal addr_d                   : std_logic_vector(clog2(c_num_emitter) - 1 downto 0):= (others => '0');
 
 begin
@@ -205,9 +207,11 @@ amp_mult_sin_byte_proc:
   begin
     if rising_edge(clk) then
       new_param_wr_en_d <= new_param_wr_en;
-      data_summ_en <= new_param_wr_en_d;
-      amp_mult_sin_byte <= ampl_byte * sin_mem_byte;
---      sin_mem_byte_d <= sin_mem_byte
+      new_param_wr_en_d1 <= new_param_wr_en_d;
+      data_summ_en <= new_param_wr_en_d1;
+      amp_mult_sin_byte <= ampl_byte_d * sin_mem_byte_d;
+      sin_mem_byte_d <= sin_mem_byte;
+      ampl_byte_d <= ampl_byte;
       if data_summ_en = '1' then
         data_out <= ('0' & data_out(8 downto 1)) +('0' & (amp_mult_sin_byte(15 downto 8) +1));
       else
