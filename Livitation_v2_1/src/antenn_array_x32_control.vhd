@@ -50,6 +50,7 @@ end antenn_array_x32_control;
 architecture Behavioral of antenn_array_x32_control is
     constant c_num_div_clk          : integer := c_clk_freq_hz/(c_emitter_center_freq_hz*c_num_emitter*c_sin_points_per_period);
     constant c_sin_mem_addr_length  : integer := clog2(c_sin_data_width);
+    constant c_max_emitter          : std_logic_vector(clog2(c_num_emitter) - 1 downto 0):= (others => '1');
     signal param_mem_addb           : std_logic_vector(clog2(2*c_num_emitter * c_num_harmonics) - 1 downto 0):= (others => '0');
     signal param_mem_dout           : std_logic_vector(31 downto 0);
     signal clk_counter              : std_logic_vector(clog2(c_num_div_clk) - 1 downto 0):= (others => '0');
@@ -77,12 +78,14 @@ architecture Behavioral of antenn_array_x32_control is
     signal param_buff_addr          : std_logic:= '0';
     signal new_param_buff_addr      : std_logic:= '0';
     signal data_summ_en             : std_logic;
-    signal data_out                 : std_logic_vector(8 downto 0);
+    signal data_out                 : std_logic_vector(10 downto 0);
     signal new_param_wr_en_d        : std_logic;
     signal new_param_wr_en_d1       : std_logic;
     signal addr_d                   : std_logic_vector(clog2(c_num_emitter) - 1 downto 0):= (others => '0');
+    signal next_new_param_buf_en    : std_logic;
 
 begin
+next_new_param_buf_en <= '1' when (antenn_address = c_max_emitter and antenn_addr_edge = '1') else '0';
 
 param_buff_addr_proc :
   process(clk)
@@ -93,9 +96,11 @@ param_buff_addr_proc :
           param_buff_addr <= not param_buff_addr;
         end if;
 
-        if (antenn_address = "1111" and antenn_addr_edge = '1') or (start = '1') then
+        if (next_new_param_buf_en = '1') or (start = '1') then
           new_param_buff_addr <= not param_buff_addr;
         end if;
+        
+        en_d <= en;
 
     end if;
   end process;
@@ -106,13 +111,10 @@ timer_tick_proc:
     if rising_edge(clk) then
       if (en = '0') then
         clk_counter <= (others => '0');
-        antenn_addr_edge <= '0';
       elsif clk_counter = c_num_harmonics then
         clk_counter <= (others => '0');
-        antenn_addr_edge <= '1';
       else
         clk_counter <= clk_counter + 1;
-        antenn_addr_edge <= '0';
       end if;
     end if;
   end process;
@@ -174,7 +176,7 @@ out_process :
         antenn_addr <= (others => '0');
       else
         if data_summ_en = '0' then
-            antenn_data <= data_out(8 downto 1) + 1;
+            antenn_data <= data_out(data_out'length - 1 downto data_out'length - 8);
             antenn_addr <= addr_d;
             antenn_data_valid <= '1';
         else
@@ -190,10 +192,14 @@ antenn_address_proc :
     if rising_edge(clk) then
       if (en = '0') then
         antenn_address <= (others => '0');
+        antenn_addr_edge <= '0';
       else
         if (clk_counter(clog2(c_num_div_clk) - 1 downto 0)= c_num_harmonics) then
           antenn_address <= antenn_address + 1;
           addr_d <= antenn_address;
+          antenn_addr_edge <= '1';
+        else
+          antenn_addr_edge <= '0';
         end if;
       end if;
     end if;
@@ -213,7 +219,7 @@ amp_mult_sin_byte_proc:
       sin_mem_byte_d <= sin_mem_byte;
       ampl_byte_d <= ampl_byte;
       if data_summ_en = '1' then
-        data_out <= ('0' & data_out(8 downto 1)) +('0' & (amp_mult_sin_byte(15 downto 8) +1));
+        data_out <= data_out + ("000" & (amp_mult_sin_byte(15 downto 8) + 1));
       else
         data_out <= (others => '0');
       end if;

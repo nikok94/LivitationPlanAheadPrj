@@ -10,6 +10,8 @@ NET "ant_array1_addr[0]" IOSTANDARD = LVCMOS33;
 NET "ant_array1_addr[1]" IOSTANDARD = LVCMOS33;
 NET "ant_array1_addr[2]" IOSTANDARD = LVCMOS33;
 NET "ant_array1_addr[3]" IOSTANDARD = LVCMOS33;
+NET "antenn_en[0]" IOSTANDARD = LVCMOS33;
+NET "antenn_en[1]" IOSTANDARD = LVCMOS33;
 
 
 #NET "wr" IOSTANDARD = LVCMOS33;
@@ -45,6 +47,8 @@ NET "ant_array1_addr[2]" LOC = M14;
 NET "ant_array1_addr[3]" LOC = M13;
 
 
+NET "antenn_en[0]" LOC = N14;
+NET "antenn_en[1]" LOC = N16;
 
 NET "u_tx" IOSTANDARD = LVCMOS33;
 AREA_GROUP "pblock_1" RANGE=SLICE_X22Y27:SLICE_X29Y31;

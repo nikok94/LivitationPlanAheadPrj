@@ -42,13 +42,16 @@ entity Top is
         u_tx            : out std_logic;
         u_rx            : in std_logic;
         ant_array1_addr : out std_logic_vector(3 downto 0);
-        ant_array1_data : out std_logic_vector(7 downto 0)--;
+        ant_array1_data : out std_logic_vector(7 downto 0);
+        antenn_en       : out std_logic_vector(1 downto 0)
 --        wr              : out std_logic;
 --        cs              : out std_logic
     );
 end Top;
 
 architecture Behavioral of Top is
+    type antenn_data_delay_type is array (7 downto 0) of std_logic_vector(7 downto 0);
+    signal antenn_delay         : antenn_data_delay_type;
     constant c_freq_hz          : integer := 200_000_000;
     constant c_boad_rate        : integer := 230400;
     constant g_CLKS_PER_BIT     : integer := c_freq_hz/c_boad_rate;
@@ -87,11 +90,26 @@ architecture Behavioral of Top is
     signal antenn_data_valid    : std_logic;
     signal param_mem_load       : std_logic;
     signal antenn_addr          : std_logic_vector(4 downto 0);
-
+    signal antenn_1_data        : std_logic_vector(7 downto 0);
+    
 begin
 
+antenn_en(0) <= antenn_addr(4);
+antenn_en(1) <= not antenn_addr(4);
 --wr  <= '0' when start_en = '1' and antenn_addr = 0 else '1';
 --cs  <= '0' when start_en = '1' and antenn_addr = 0 else '1';
+antenn_delay_proc :
+    process(clk)
+    begin
+      if rising_edge(clk) then
+        for i in 0 to 6 loop
+          antenn_delay(i + 1) <= antenn_delay(i);
+        end loop;
+          antenn_delay(0) <= antenn_1_data;
+      end if;
+    end process;
+
+ant_array1_data <= antenn_delay(7);
 
 uart_rx_inst :  entity UART_RX
   generic map(
@@ -192,12 +210,12 @@ param_mem_adda_proc :
   process(clk)
   begin 
     if rising_edge(clk) then
-      if (state = idle) then
-        param_mem_adda <= (others => '0');
-      elsif (state = load_param1) then
+      if (state = load_param1) then
         if (uart_rx_byte_valid = '1') then
           param_mem_adda <= param_mem_adda + 1;
         end if;
+      else
+        param_mem_adda <= (others => '0');
       end if;
     end if;
   end process;
@@ -293,7 +311,7 @@ antenn_array_x32_control_inst : entity antenn_array_x32_control
       param_mem_wea                 => param_mem_wea,
       param_mem_load                => param_mem_load,
       antenn_addr                   => antenn_addr,
-      antenn_data                   => ant_array1_data,
+      antenn_data                   => antenn_1_data,
       antenn_data_valid             => antenn_data_valid
     );
 
