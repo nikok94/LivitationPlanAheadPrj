@@ -25,6 +25,9 @@ use IEEE.STD_LOGIC_unsigned.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use IEEE.Numeric_Std.ALL;
 
+library UNISIM;
+use UNISIM.VComponents.all;
+
 library work;
 use work.clock_generator;
 use work.UART_RX;
@@ -36,22 +39,39 @@ use work.antenn_array_x32_control;
 entity Top is
     Port ( 
         sys_clk         : in std_logic;
+
+        diff_clk_p_in   : in std_logic;
+        diff_clk_n_in   : in std_logic;
+
+        diff_clk_p_out  : out std_logic;
+        diff_clk_n_out  : out std_logic;
+
+        init_addr       : in std_logic_vector(3 downto 0);
+
         leds_out        : inout std_logic_vector(1 downto 0);
         button1_in      : in std_logic;
         button2_in      : in std_logic;
         u_tx            : out std_logic;
         u_rx            : in std_logic;
-        ant_array1_addr : out std_logic_vector(3 downto 0);
+        ant_array_addr  : out std_logic_vector(3 downto 0);
+        ant_array0_data : out std_logic_vector(7 downto 0);
         ant_array1_data : out std_logic_vector(7 downto 0);
+        ant_array2_data : out std_logic_vector(7 downto 0);
+        ant_array3_data : out std_logic_vector(7 downto 0);
+        ant_array4_data : out std_logic_vector(7 downto 0);
+        ant_array5_data : out std_logic_vector(7 downto 0);
+        ant_array6_data : out std_logic_vector(7 downto 0);
+        ant_array7_data : out std_logic_vector(7 downto 0);
         antenn_en       : out std_logic_vector(1 downto 0)
---        wr              : out std_logic;
---        cs              : out std_logic
     );
 end Top;
 
 architecture Behavioral of Top is
-    type antenn_data_delay_type is array (7 downto 0) of std_logic_vector(7 downto 0);
-    signal antenn_delay         : antenn_data_delay_type;
+    type antenn_data_type is array (7 downto 0) of std_logic_vector(7 downto 0);
+    signal antenn_data_out      : antenn_data_type;
+    type antenn_addr_type is array (7 downto 0) of std_logic_vector(4 downto 0);
+    signal antenn_addr_out      : antenn_addr_type;
+    
     constant c_freq_hz          : integer := 200_000_000;
     constant c_boad_rate        : integer := 230400;
     constant g_CLKS_PER_BIT     : integer := c_freq_hz/c_boad_rate;
@@ -89,27 +109,17 @@ architecture Behavioral of Top is
     signal param_mem_wea        : std_logic;
     signal antenn_data_valid    : std_logic;
     signal param_mem_load       : std_logic;
-    signal antenn_addr          : std_logic_vector(4 downto 0);
-    signal antenn_1_data        : std_logic_vector(7 downto 0);
+    signal clk_next_chip        : std_logic;
+    signal first_clk_ibufds     : std_logic;
+    signal clk_res              : std_logic;
+    signal clk_select           : std_logic;
     
 begin
 
-antenn_en(0) <= antenn_addr(4);
-antenn_en(1) <= not antenn_addr(4);
---wr  <= '0' when start_en = '1' and antenn_addr = 0 else '1';
---cs  <= '0' when start_en = '1' and antenn_addr = 0 else '1';
-antenn_delay_proc :
-    process(clk)
-    begin
-      if rising_edge(clk) then
-        for i in 0 to 6 loop
-          antenn_delay(i + 1) <= antenn_delay(i);
-        end loop;
-          antenn_delay(0) <= antenn_1_data;
-      end if;
-    end process;
+clk_select <= init_addr(3) or init_addr(2) or init_addr(1) or init_addr(0);
 
-ant_array1_data <= antenn_delay(7);
+antenn_en(0) <= antenn_addr_out(0)(4);
+antenn_en(1) <= not antenn_addr_out(0)(4);
 
 uart_rx_inst :  entity UART_RX
   generic map(
@@ -164,14 +174,48 @@ rst_proc :
     end if;
   end process;
 
+
+BUFGMUX_inst : BUFGMUX
+   generic map (
+      CLK_SEL_TYPE => "SYNC"  -- Glitchles ("SYNC") or fast ("ASYNC") clock switch-over
+   )
+   port map (
+      O => clk_res,   -- 1-bit output: Clock buffer output
+      I0 => sys_clk, -- 1-bit input: Clock buffer input (S=0)
+      I1 => first_clk_ibufds, -- 1-bit input: Clock buffer input (S=1)
+      S => clk_select    -- 1-bit input: Clock buffer select
+   );
+
+IBUFGDS_inst : IBUFGDS
+   generic map (
+      DIFF_TERM => FALSE, -- Differential Termination 
+      IBUF_LOW_PWR => TRUE, -- Low power (TRUE) vs. performance (FALSE) setting for referenced I/O standards
+      IOSTANDARD => "DEFAULT")
+   port map (
+      O => first_clk_ibufds,  -- Clock buffer output
+      I => diff_clk_p_in,  -- Diff_p clock buffer input (connect directly to top-level port)
+      IB => diff_clk_n_in -- Diff_n clock buffer input (connect directly to top-level port)
+   );
+
 clk_gen_ist : entity clock_generator
     Port map( 
-      clk_in        => sys_clk,
+      clk_in        => clk_res,
       rst_in        => gnd,
       pll_lock      => open,
-      clk_out       => clk,
+      clk0_out      => clk,
+      clk1_out      => clk_next_chip,
       rst_out       => leds_out(0)
     );
+
+OBUFDS_inst : OBUFDS
+   generic map (
+      IOSTANDARD => "DEFAULT")
+   port map (
+      O => diff_clk_p_out,    -- Diff_p output (connect directly to top-level port)
+      OB => diff_clk_n_out,   -- Diff_n output (connect directly to top-level port)
+      I => clk_next_chip      -- Buffer input 
+   );
+
 
 leds_out(1) <= not start_en;
 
@@ -291,6 +335,8 @@ next_state_proc :
       end case;
   end process;
 
+generate_proc : for i in 7 downto 0 generate
+
 antenn_array_x32_control_inst : entity antenn_array_x32_control 
     generic map(
       c_sin_data_width              => 2048,
@@ -310,28 +356,21 @@ antenn_array_x32_control_inst : entity antenn_array_x32_control
       param_mem_dina                => uart_rx_byte,
       param_mem_wea                 => param_mem_wea,
       param_mem_load                => param_mem_load,
-      antenn_addr                   => antenn_addr,
-      antenn_data                   => antenn_1_data,
-      antenn_data_valid             => antenn_data_valid
+      antenn_addr                   => antenn_addr_out(i),
+      antenn_data                   => antenn_data_out(i),
+      antenn_data_valid             => open
     );
+end generate;
 
+ant_array_addr <= antenn_addr_out(0)(3 downto 0);
+ant_array0_data <= antenn_data_out(0);
+ant_array1_data <= antenn_data_out(1);
+ant_array2_data <= antenn_data_out(2);
+ant_array3_data <= antenn_data_out(3);
+ant_array4_data <= antenn_data_out(4);
+ant_array5_data <= antenn_data_out(5);
+ant_array6_data <= antenn_data_out(6);
+ant_array7_data <= antenn_data_out(7);
 
---antenn_array_x16_control_inst : entity antenn_array_x16_control 
---    Port map( 
---      clk                           => clk,
---      --rst                           => rst,
---      sin_mem_wea                   => sin_mem_wea,
---      sin_mem_addra                 => sin_mem_adda(10 downto 0),
---      sin_mem_dina                  => uart_rx_byte,
---      en                            => start_en,
---      param_mem_adda                => param_mem_adda(8 downto 0),
---      param_mem_dina                => uart_rx_byte,
---      param_mem_wea                 => param_mem_wea,
---      param_mem_load                => param_mem_load,
---      antenn_addr                   => antenn_addr,
---      antenn_data                   => ant_array1_data,
---      antenn_data_valid             => antenn_data_valid
---    );
-ant_array1_addr <= antenn_addr(3 downto 0);
 
 end Behavioral;

@@ -36,7 +36,8 @@ entity clock_generator is
       clk_in        : in std_logic;
       rst_in        : in std_logic;
       pll_lock      : out std_logic;
-      clk_out       : out std_logic;
+      clk0_out      : out std_logic;
+      clk1_out      : out std_logic;
       rst_out       : out std_logic
     );
 end clock_generator;
@@ -78,7 +79,7 @@ PLL_BASE_inst : PLL_BASE
                                             -- MHz).
       -- CLKOUT0_DIVIDE - CLKOUT5_DIVIDE: Divide amount for CLKOUT# clock output (1-128)
       CLKOUT0_DIVIDE => 5,
-      CLKOUT1_DIVIDE => 4,
+      CLKOUT1_DIVIDE => 20,
       CLKOUT2_DIVIDE => 10,
       CLKOUT3_DIVIDE => 10,
       CLKOUT4_DIVIDE => 1,
@@ -120,7 +121,8 @@ PLL_BASE_inst : PLL_BASE
 pll_lock <= LOCKED;
 
 bufg1_inst : BUFG port map ( I => CLKFBOUT, O => CLKFBOUT_bufg);
-bufg2_inst : BUFG port map ( I => pll_clkout_0, O => clk_out);
+bufg2_inst : BUFG port map ( I => pll_clkout_0, O => clk0_out);
+bufg3_inst : BUFG port map ( I => pll_clkout_1, O => clk1_out);
 --bufg3_inst : BUFG port map ( I => pll_clkout_1, O => clk_out_250MHz);
 --bufg4_inst : BUFG port map ( I => pll_clkout_2, O => clk_out_100MHz);
 --bufg5_inst : BUFG port map ( I => pll_clkout_3, O => clk_out_100MHz_180);
