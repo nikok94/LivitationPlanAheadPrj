@@ -1,44 +1,107 @@
-NET "ant_array4_data[0]" LOC = H11;
-NET "ant_array4_data[1]" LOC = G12;
-NET "ant_array4_data[2]" LOC = H15;
-NET "ant_array4_data[3]" LOC = H16;
-NET "ant_array4_data[4]" LOC = G14;
-NET "ant_array4_data[5]" LOC = G16;
-NET "ant_array4_data[6]" LOC = F13;
-NET "ant_array4_data[7]" LOC = F14;
-NET "ant_array5_data[0]" LOC = F12;
-NET "ant_array5_data[1]" LOC = G11;
-NET "ant_array5_data[2]" LOC = F16;
-NET "ant_array5_data[3]" LOC = F15;
-NET "ant_array5_data[4]" LOC = E16;
-NET "ant_array5_data[5]" LOC = E15;
-NET "ant_array5_data[6]" LOC = D16;
-NET "ant_array5_data[7]" LOC = D14;
-NET "ant_array_addr[0]" LOC = C16;
-NET "ant_array_addr[1]" LOC = C15;
-NET "ant_array_addr[2]" LOC = B16;
-NET "ant_array_addr[3]" LOC = B15;
-NET "antenn_en[0]" LOC = E12;
-NET "antenn_en[1]" LOC = E13;
-NET "ant_array6_data[0]" LOC = P11;
-NET "ant_array6_data[1]" LOC = M10;
-NET "ant_array6_data[2]" LOC = M9;
-NET "ant_array6_data[3]" LOC = N9;
-NET "ant_array6_data[4]" LOC = T7;
-NET "ant_array6_data[5]" LOC = T6;
-NET "ant_array6_data[6]" LOC = R5;
-NET "ant_array6_data[7]" LOC = T5;
-NET "ant_array7_data[0]" LOC = T4;
-NET "ant_array7_data[1]" LOC = P9;
-NET "ant_array7_data[2]" LOC = L7;
-NET "ant_array7_data[3]" LOC = N8;
-NET "ant_array7_data[4]" LOC = P6;
-NET "ant_array7_data[5]" LOC = M7;
-NET "ant_array7_data[6]" LOC = N6;
-NET "ant_array7_data[7]" LOC = P5;
+NET "u_rx" LOC = R12;
+NET "u_rx" IOSTANDARD = LVCMOS25;
+NET "u_tx" LOC = T12;
+NET "u_tx" IOSTANDARD = LVCMOS25;
+
+NET "ant_array0_data[0]" LOC = J13;
+NET "ant_array0_data[1]" LOC = K15;
+NET "ant_array0_data[2]" LOC = K16;
+NET "ant_array0_data[3]" LOC = K14;
+NET "ant_array0_data[4]" LOC = J12;
+NET "ant_array0_data[5]" LOC = J11;
+NET "ant_array0_data[6]" LOC = J16;
+NET "ant_array0_data[7]" LOC = J14;
+
+NET "ant_array1_data[0]" LOC = H11;
+NET "ant_array1_data[1]" LOC = H13;
+NET "ant_array1_data[2]" LOC = H14;
+NET "ant_array1_data[3]" LOC = G12;
+NET "ant_array1_data[4]" LOC = H16;
+NET "ant_array1_data[5]" LOC = H15;
+NET "ant_array1_data[6]" LOC = G14;
+NET "ant_array1_data[7]" LOC = G16;
+
+
+NET "ant_array2_data[0]" LOC = F12;
+NET "ant_array2_data[1]" LOC = F14;
+NET "ant_array2_data[2]" LOC = F13;
+NET "ant_array2_data[3]" LOC = G11;
+NET "ant_array2_data[4]" LOC = F16;
+NET "ant_array2_data[5]" LOC = F15;
+NET "ant_array2_data[6]" LOC = E16;
+NET "ant_array2_data[7]" LOC = E15;
+
+NET "ant_array3_data[0]" LOC = B16;
+NET "ant_array3_data[1]" LOC = E12;
+NET "ant_array3_data[2]" LOC = E13;
+NET "ant_array3_data[3]" LOC = B15;
+NET "ant_array3_data[4]" LOC = C16;
+NET "ant_array3_data[5]" LOC = C15;
+NET "ant_array3_data[6]" LOC = D16;
+NET "ant_array3_data[7]" LOC = D14;
+
+NET "ant_array4_data[0]" LOC = P11;
+NET "ant_array4_data[1]" LOC = P12;
+NET "ant_array4_data[2]" LOC = M11;
+NET "ant_array4_data[3]" LOC = M10;
+NET "ant_array4_data[4]" LOC = M9;
+NET "ant_array4_data[5]" LOC = N9;
+NET "ant_array4_data[6]" LOC = T7;
+NET "ant_array4_data[7]" LOC = T6;
+
+NET "ant_array5_data[0]" LOC = T4;
+NET "ant_array5_data[1]" LOC = T5;
+NET "ant_array5_data[2]" LOC = R5;
+NET "ant_array5_data[3]" LOC = P9;
+NET "ant_array5_data[4]" LOC = L7;
+NET "ant_array5_data[5]" LOC = N8;
+NET "ant_array5_data[6]" LOC = P6;
+NET "ant_array5_data[7]" LOC = M7;
+
+NET "ant_array6_data[0]" LOC = C9;
+NET "ant_array6_data[1]" LOC = A7;
+NET "ant_array6_data[2]" LOC = B8;
+NET "ant_array6_data[3]" LOC = A8;
+NET "ant_array6_data[4]" LOC = B10;
+NET "ant_array6_data[5]" LOC = A9;
+NET "ant_array6_data[6]" LOC = C11;
+NET "ant_array6_data[7]" LOC = A11;
+
+NET "ant_array7_data[0]" LOC = E7;
+NET "ant_array7_data[1]" LOC = C6;
+NET "ant_array7_data[2]" LOC = F7;
+NET "ant_array7_data[3]" LOC = E6;
+NET "ant_array7_data[4]" LOC = C8;
+NET "ant_array7_data[5]" LOC = D8;
+NET "ant_array7_data[6]" LOC = F9;
+NET "ant_array7_data[7]" LOC = D9;
+
+NET "ant_array_addr[0]" LOC = C13;
+NET "ant_array_addr[1]" LOC = A13;
+NET "ant_array_addr[2]" LOC = A14;
+NET "ant_array_addr[3]" LOC = B14;
+
+NET "antenn_en[0]" LOC = A12;
+NET "antenn_en[1]" LOC = B12;
+
+NET "init_addr[0]" LOC = B5;
+NET "init_addr[1]" LOC = A4;
+NET "init_addr[2]" LOC = B6;
+NET "init_addr[3]" LOC = A5;
+
+NET "leds_out[0]" LOC = T9;
+NET "leds_out[1]" LOC = R9;
+
+NET "button1_in" LOC = T8;
+NET "button2_in" LOC = R7;
+
+
+
+
 NET "diff_clk_p_in" LOC = E10;
 NET "diff_clk_n_out" LOC = E11;
-NET "u_rx" IOSTANDARD = LVCMOS25;
+NET "diff_clk_p_out" LOC = F10;
+
 NET "sys_clk" LOC = A10;
 NET "sys_clk" TNM_NET = "CLK1";
 TIMESPEC TS_CLK1 = PERIOD "CLK1" 20 ns HIGH 50 %;
@@ -46,55 +109,11 @@ TIMESPEC TS_CLK1 = PERIOD "CLK1" 20 ns HIGH 50 %;
 NET "clk_gen_ist/clk0_out" TNM_NET = "CLK_MAIN";
 TIMESPEC TS_CLK_MAIN = PERIOD "CLK_MAIN" 5 ns HIGH 50 %;
 
-NET "leds_out[0]" LOC = T9;
-NET "leds_out[1]" LOC = R9;
-NET "button1_in" LOC = R7;
-NET "button2_in" LOC = T8;
 
-
-
-NET "u_tx" IOSTANDARD = LVCMOS25;
-NET "u_rx" LOC = M11;
-NET "u_tx" LOC = M12;
-NET "ant_array0_data[0]" LOC = R12;
-NET "ant_array0_data[1]" LOC = T12;
-NET "ant_array0_data[2]" LOC = T14;
-NET "ant_array0_data[3]" LOC = T13;
-NET "ant_array0_data[4]" LOC = T15;
-NET "ant_array0_data[5]" LOC = R14;
-NET "ant_array0_data[6]" LOC = R16;
-NET "ant_array0_data[7]" LOC = R15;
-NET "ant_array1_data[0]" LOC = P16;
-NET "ant_array1_data[1]" LOC = P15;
-NET "ant_array1_data[2]" LOC = L13;
-NET "ant_array1_data[3]" LOC = L12;
-NET "ant_array1_data[4]" LOC = M14;
-NET "ant_array1_data[5]" LOC = M13;
-NET "ant_array1_data[6]" LOC = N16;
-NET "ant_array1_data[7]" LOC = N14;
-NET "ant_array2_data[0]" LOC = M16;
-NET "ant_array2_data[1]" LOC = M15;
-NET "ant_array2_data[2]" LOC = K12;
-NET "ant_array2_data[3]" LOC = K11;
-NET "ant_array2_data[4]" LOC = L14;
-NET "ant_array2_data[5]" LOC = L16;
-NET "ant_array2_data[6]" LOC = K16;
-NET "ant_array2_data[7]" LOC = K15;
-NET "ant_array3_data[0]" LOC = J13;
-NET "ant_array3_data[1]" LOC = K14;
-NET "ant_array3_data[2]" LOC = J12;
-NET "ant_array3_data[3]" LOC = J11;
-NET "ant_array3_data[4]" LOC = J16;
-NET "ant_array3_data[5]" LOC = J14;
-NET "ant_array3_data[6]" LOC = H14;
-NET "ant_array3_data[7]" LOC = H13;
-NET "init_addr[0]" LOC = A8;
-NET "init_addr[1]" LOC = C9;
-NET "init_addr[2]" LOC = A9;
-NET "init_addr[3]" LOC = B10;
 
 PIN "clk_gen_ist/bufg3_inst.O" CLOCK_DEDICATED_ROUTE = FALSE;
 NET "sys_clk" CLOCK_DEDICATED_ROUTE = FALSE;
+
 
 
 
