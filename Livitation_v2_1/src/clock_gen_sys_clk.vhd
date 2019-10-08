@@ -2,9 +2,9 @@
 -- Company: 
 -- Engineer: 
 -- 
--- Create Date: 11.04.2019 17:38:20
+-- Create Date: 08.10.2019 10:44:58
 -- Design Name: 
--- Module Name: clock_generator - Behavioral
+-- Module Name: clock_gen_sys_clk - Behavioral
 -- Project Name: 
 -- Target Devices: 
 -- Tool Versions: 
@@ -31,77 +31,39 @@ use IEEE.STD_LOGIC_1164.ALL;
 library UNISIM;
 use UNISIM.VComponents.all;
 
-entity clock_generator is
-  Port ( 
-    sys_clk_in            : in std_logic;
+entity clock_gen_sys_clk is
+    Port (
+    in_clk  : in std_logic;
+    clk_0   : out std_logic;
+    clk_1   : out std_logic;
+    clk_2_p : out std_logic;
+    clk_2_n : out std_logic;
+    locked  : out std_logic
+    );
+end clock_gen_sys_clk;
 
-    ext_clk_p_in          : in std_logic;
-    ext_clk_n_in          : in std_logic;
-
-    clk_sel               : in std_logic;
-
-    rst_in                : in std_logic;
-    pll_lock              : out std_logic;
-
-    clk_100MHz_out        : out std_logic;
-    clk_200MHz_out        : out std_logic;
-
-    clk_50MHz_p_out       : out std_logic;
-    clk_50MHz_n_out       : out std_logic
-  );
-end clock_generator;
-
-architecture Behavioral of clock_generator is
-  signal ext_clk_IBUFGDS    : std_logic;
-  signal sys_clk_IBUFG      : std_logic;
-  signal clk_res            : std_logic;
-  signal CLKFBIN            : std_logic;
-  signal CLKFBOUT           : std_logic;
-  signal pll_clkout_0       : std_logic;
-  signal pll_clkout_1       : std_logic;
-  signal pll_clkout_2       : std_logic;
-  signal pll_clkout_3       : std_logic;
-  signal bufh_o             : std_logic;
-  signal bufh_ext_clk       : std_logic;
+architecture Behavioral of clock_gen_sys_clk is
+    signal clk_in_bufg          : std_logic;
+    signal pll_lock             : std_logic;
+    signal pll_clkout_2_bufg    : std_logic;
+    signal IOCLK_BUFPLL         : std_logic;
+    signal CLKFBIN              : std_logic;
+    signal CLKFBOUT             : std_logic;
+    signal pll_clkout_0         : std_logic;
+    signal pll_clkout_1         : std_logic;
+    signal pll_clkout_2         : std_logic;
+    signal pll_clkout_3         : std_logic;
+    signal bufh_o               : std_logic;
 
 begin
 
-IBUFGDS_inst : IBUFGDS
-   generic map (
-      DIFF_TERM => TRUE, -- Differential Termination 
-      IBUF_LOW_PWR => TRUE, -- Low power (TRUE) vs. performance (FALSE) setting for referenced I/O standards
-      IOSTANDARD => "DEFAULT")
-   port map (
-      O => ext_clk_IBUFGDS,  -- Clock buffer output
-      I => ext_clk_p_in,  -- Diff_p clock buffer input (connect directly to top-level port)
-      IB => ext_clk_n_in -- Diff_n clock buffer input (connect directly to top-level port)
-   );
-
-
-   IBUFG_inst : IBUFG
+IBUFG_inst : IBUFG
    generic map (
       IBUF_LOW_PWR => TRUE, -- Low power (TRUE) vs. performance (FALSE) setting for referenced I/O standards
       IOSTANDARD => "DEFAULT")
    port map (
-      O => sys_clk_IBUFG, -- Clock buffer output
-      I => sys_clk_in  -- Clock buffer input (connect directly to top-level port)
-   );
-
-in_BUFH_inst : BUFG
-   port map (
-      O => bufh_ext_clk, -- 1-bit output: Clock output
-      I => ext_clk_IBUFGDS  -- 1-bit input: Clock input
-   );
-
-BUFGMUX_inst : BUFGMUX
-   generic map (
-      CLK_SEL_TYPE => "ASYNC"  -- Glitchles ("SYNC") or fast ("ASYNC") clock switch-over
-   )
-   port map (
-      O => clk_res,             -- 1-bit output: Clock buffer output
-      I0 => sys_clk_IBUFG,            -- 1-bit input: Clock buffer input (S=0)
-      I1 => bufh_ext_clk,        -- 1-bit input: Clock buffer input (S=1)
-      S => clk_sel                  -- 1-bit input: Clock buffer select
+      O => clk_in_bufg, -- Clock buffer output
+      I => in_clk  -- Clock buffer input (connect directly to top-level port)
    );
 
 PLL_BASE_inst : PLL_BASE
@@ -113,10 +75,10 @@ PLL_BASE_inst : PLL_BASE
       CLKIN_PERIOD => 20.0,                  -- Input clock period in ns to ps resolution (i.e. 33.333 is 30
                                             -- MHz).
       -- CLKOUT0_DIVIDE - CLKOUT5_DIVIDE: Divide amount for CLKOUT# clock output (1-128)
-      CLKOUT0_DIVIDE => 5,
-      CLKOUT1_DIVIDE => 10,
-      CLKOUT2_DIVIDE => 20,
-      CLKOUT3_DIVIDE => 20,
+      CLKOUT0_DIVIDE => 10,
+      CLKOUT1_DIVIDE => 50,
+      CLKOUT2_DIVIDE => 50,
+      CLKOUT3_DIVIDE => 1,
       CLKOUT4_DIVIDE => 1,
       CLKOUT5_DIVIDE => 1,
       -- CLKOUT0_DUTY_CYCLE - CLKOUT5_DUTY_CYCLE: Duty cycle for CLKOUT# clock output (0.01-0.99).
@@ -145,21 +107,39 @@ PLL_BASE_inst : PLL_BASE
       CLKOUT0 => pll_clkout_0,
       CLKOUT1 => pll_clkout_1,
       CLKOUT2 => pll_clkout_2,
-      CLKOUT3 => pll_clkout_3,
+      CLKOUT3 => open,
       CLKOUT4 => open,
       CLKOUT5 => open,
       LOCKED => pll_lock,     -- 1-bit output: PLL_BASE lock status output
       CLKFBIN => CLKFBIN,   -- 1-bit input: Feedback clock input
-      CLKIN => clk_res,       -- 1-bit input: Clock input
-      RST => rst_in            -- 1-bit input: Reset input
+      CLKIN => clk_in_bufg,       -- 1-bit input: Clock input
+      RST => '0'            -- 1-bit input: Reset input
    );
+
+locked <= pll_lock;
+
 
 CLKFBIN <= CLKFBOUT;
 
+bufg0_inst : BUFG port map ( I => pll_clkout_0, O => clk_0);
+bufg1_inst : BUFG port map ( I => pll_clkout_1, O => clk_1);
+--bufg2_inst : BUFG port map ( I => pll_clkout_2, O => pll_clkout_2_bufg );
 
-bufg1_inst : BUFG port map ( I => pll_clkout_0, O => clk_200MHz_out);
-bufg2_inst : BUFG port map ( I => pll_clkout_1, O => clk_100MHz_out);
 
+--BUFPLL_inst : BUFPLL
+--   generic map (
+--      DIVIDE => 1,         -- DIVCLK divider (1-8)
+--      ENABLE_SYNC => TRUE  -- Enable synchrnonization between PLL and GCLK (TRUE/FALSE)
+--   )
+--   port map (
+--      IOCLK => IOCLK_BUFPLL,               -- 1-bit output: Output I/O clock
+--      LOCK => open,                 -- 1-bit output: Synchronized LOCK output
+--      SERDESSTROBE => open, -- 1-bit output: Output SERDES strobe (connect to ISERDES2/OSERDES2)
+--      GCLK => pll_clkout_2_bufg,                 -- 1-bit input: BUFG clock input
+--      LOCKED => pll_lock,             -- 1-bit input: LOCKED input from PLL
+--      PLLIN => pll_clkout_0                -- 1-bit input: Clock input from PLL
+--   );
+   
 BUFH_inst : BUFH
    port map (
       O => bufh_o, -- 1-bit output: Clock output
@@ -171,11 +151,9 @@ OBUFDS_inst : OBUFDS
    generic map (
       IOSTANDARD => "DEFAULT")
    port map (
-      O => clk_50MHz_p_out,     -- Diff_p output (connect directly to top-level port)
-      OB => clk_50MHz_n_out,   -- Diff_n output (connect directly to top-level port)
+      O => clk_2_p,     -- Diff_p output (connect directly to top-level port)
+      OB => clk_2_n,   -- Diff_n output (connect directly to top-level port)
       I => bufh_o      -- Buffer input 
    );
-
-
 
 end Behavioral;

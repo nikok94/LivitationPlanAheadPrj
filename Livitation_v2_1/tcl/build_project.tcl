@@ -21,7 +21,8 @@ set_property "target_language" "VHDL" $obj
 
 ########################################################################
 # Sources
-add_files -norecurse ../src/antenn_array_x16_control.vhd
+
+#add_files -norecurse ../src/antenn_array_x16_control.vhd
 add_files -norecurse ../src/antenn_array_x32_control.vhd
 add_files -norecurse ../src/clock_generator.vhd
 add_files -norecurse ../src/fifo_non_simetric.vhd
@@ -30,7 +31,9 @@ add_files -norecurse ../src/UART_RX.vhd
 add_files -norecurse ../src/UART_TX.vhd
 add_files -norecurse ../src/blk_mem_gen_v7_3_0/sin_mem.xci
 add_files -norecurse ../src/blk_mem_gen_v7_3_1/get_param_mem.xci
+add_files -norecurse ../src/fifo_generator_v9_3_0/async_fifo_for_parameters.xci
 add_files -norecurse ../src/proc_common_pkg.vhd
+add_files -norecurse ../src/sinus_form_generator.vhd
 
 ########################################################################
 # UCF

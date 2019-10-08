@@ -8,3 +8,10 @@
 
 /**/src/blk_mem_gen_v7_3_1/*
 !/**/src/blk_mem_gen_v7_3_1/get_param_mem.xci
+
+/**/src/fifo_generator_v9_3_0/*
+!/**/src/fifo_generator_v9_3_0/async_fifo_for_parameters.xci
+
+/**/tcl/*
+!/**/tcl/build_project.tcl
+!/**/tcl/build_win.bat

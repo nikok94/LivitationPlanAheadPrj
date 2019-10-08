@@ -9,6 +9,7 @@ use work.get_param_mem;
 use work.fifo_non_simetric;
 use work.sin_mem;
 use work.proc_common_pkg.clog2;
+use work.async_fifo_for_parameters;
 
 
 
@@ -30,7 +31,8 @@ entity antenn_array_x32_control is
       c_emitter_center_freq_hz      : integer := 40000;
       c_clk_freq_hz                 : integer := 200_000_000
     );
-    Port ( 
+    Port (
+      sys_clk                       : in std_logic;
       clk                           : in std_logic;
       en                            : in std_logic;
       sin_mem_wea                   : in std_logic;
@@ -83,6 +85,19 @@ architecture Behavioral of antenn_array_x32_control is
     signal new_param_wr_en_d1       : std_logic;
     signal addr_d                   : std_logic_vector(clog2(c_num_emitter) - 1 downto 0):= (others => '0');
     signal next_new_param_buf_en    : std_logic;
+    signal async_fifo_for_parameters_wr_en : std_logic;
+    signal async_fifo_for_parameters_rd_en : std_logic;
+    signal async_fifo_for_parameters_dout   : std_logic_vector(18 downto 0);
+    signal async_fifo_for_parameters_valid  : std_logic;
+    signal fifo_non_simetric_full   : std_logic;
+    signal sync_param_mem_adda      : std_logic_vector(clog2(4*c_num_harmonics * c_num_emitter) - 1 downto 0);
+    signal sync_param_mem_dina      : std_logic_vector(7 downto 0);
+    signal sync_param_mem_wea       : std_logic;
+    signal sync_param_mem_load      : std_logic;
+    
+    
+    
+    
 
 begin
 next_new_param_buf_en <= '1' when (antenn_address = c_max_emitter and antenn_addr_edge = '1') else '0';
@@ -92,14 +107,14 @@ param_buff_addr_proc :
   begin
     if rising_edge(clk) then
 
-        if (param_mem_load = '1') then
+        if (sync_param_mem_load = '1') then
           param_buff_addr <= not param_buff_addr;
         end if;
 
         if (next_new_param_buf_en = '1') or (start = '1') then
           new_param_buff_addr <= not param_buff_addr;
         end if;
-        
+
         en_d <= en;
 
     end if;
@@ -118,7 +133,30 @@ timer_tick_proc:
       end if;
     end if;
   end process;
+  
 
+async_fifo_for_parameters_wr_en <= param_mem_wea or param_mem_load;
+
+async_fifo : ENTITY async_fifo_for_parameters
+  PORT map (
+    wr_clk  => sys_clk,
+    rd_clk  => clk,
+    din     => param_mem_adda & param_mem_dina & param_mem_load,
+    wr_en   => async_fifo_for_parameters_wr_en,
+    rd_en   => async_fifo_for_parameters_rd_en,
+    dout    => async_fifo_for_parameters_dout,
+    full    => open,
+    empty   => open,
+    valid   => async_fifo_for_parameters_valid
+  );
+
+async_fifo_for_parameters_rd_en <= (not fifo_non_simetric_full) and async_fifo_for_parameters_valid;
+
+sync_param_mem_adda <= async_fifo_for_parameters_dout(async_fifo_for_parameters_dout'length - 1 downto async_fifo_for_parameters_dout'length - sync_param_mem_adda'length);
+sync_param_mem_dina <= async_fifo_for_parameters_dout(sync_param_mem_dina'length downto 1);
+
+sync_param_mem_wea <= async_fifo_for_parameters_valid and (not async_fifo_for_parameters_dout(0));
+sync_param_mem_load <= async_fifo_for_parameters_dout(0) and async_fifo_for_parameters_valid;
   
 fifo_non_simetric_inst : entity fifo_non_simetric
     generic map(
@@ -129,10 +167,10 @@ fifo_non_simetric_inst : entity fifo_non_simetric
     Port map( 
       i_clk             => clk,
       i_rst_sync        => '0',
-      i_wr_addr         => param_mem_adda,
-      i_wr_data         => param_mem_dina,
-      i_wr_en           => param_mem_wea,
-      o_full            => open,
+      i_wr_addr         => sync_param_mem_adda,
+      i_wr_data         => sync_param_mem_dina,
+      i_wr_en           => sync_param_mem_wea,
+      o_full            => fifo_non_simetric_full,
       o_rd_addr         => fifo_non_simetric_rd_addr,
       o_rd_data         => fifo_non_simetric_dout,
       i_rd_en           => fifo_non_simetric_rd_en,
@@ -240,7 +278,7 @@ get_param_mem_inst : ENTITY get_param_mem
 
 sin_mem_inst : ENTITY sin_mem 
   PORT map(
-    clka    => clk,
+    clka    => sys_clk,
     wea(0)  => sin_mem_wea   ,
     addra   => sin_mem_addra ,
     dina    => sin_mem_dina  ,
