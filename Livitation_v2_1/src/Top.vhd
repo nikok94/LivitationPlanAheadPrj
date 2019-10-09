@@ -314,16 +314,17 @@ command_byte_proc :
       if rst = '1' then 
         start_en <= '0';
       else
-        if (uart_rx_byte_valid = '1') and (state = read_command) then
-          case uart_rx_byte is
-          when "00000000" =>
-              start_en <= '0';
-          when "00000001" =>
-              start_en <= '1';
-          when others => 
-          end case;
-          confirm_byte <= uart_rx_byte;
-        elsif ext_start_up = '1' then
+--        if (uart_rx_byte_valid = '1') and (state = read_command) then
+--          case uart_rx_byte is
+--          when "00000000" =>
+--              start_en <= '0';
+--          when "00000001" =>
+--              start_en <= '1';
+--          when others => 
+--          end case;
+--          confirm_byte <= uart_rx_byte;
+--        elsif ext_start_up = '1' then
+        if ext_start_up = '1' then
           start_en <= '1';
         end if;
       end if;
@@ -416,19 +417,19 @@ next_state_proc :
         when read_command =>
           if (ext_start = '1') then
             next_state <= ext_state_start;
-          elsif (uart_rx_byte_valid = '1') then 
-            case uart_rx_byte is
-              when "00000000" =>
-                next_state <= send_confirm;
-              when "00000001" =>
-                next_state <= send_confirm;
-              when "00000010" =>
-                next_state <= load_sinus;
-              when "00000011" =>
-                next_state <= load_param1;
-              when others => 
-                next_state <= idle;
-            end case;
+          --elsif (uart_rx_byte_valid = '1') then 
+          --  case uart_rx_byte is
+          --    when "00000000" =>
+          --      next_state <= send_confirm;
+          --    when "00000001" =>
+          --      next_state <= send_confirm;
+          --    when "00000010" =>
+          --      next_state <= load_sinus;
+          --    when "00000011" =>
+          --      next_state <= load_param1;
+          --    when others => 
+          --      next_state <= idle;
+          --  end case;
           end if;
         when ext_state_start =>
           next_state <= ext_state;

@@ -34,6 +34,7 @@ add_files -norecurse ../src/blk_mem_gen_v7_3_1/get_param_mem.xci
 add_files -norecurse ../src/fifo_generator_v9_3_0/async_fifo_for_parameters.xci
 add_files -norecurse ../src/proc_common_pkg.vhd
 add_files -norecurse ../src/sinus_form_generator.vhd
+add_files -norecurse ../src/parameters_generator.vhd
 
 ########################################################################
 # UCF
