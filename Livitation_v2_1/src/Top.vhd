@@ -29,13 +29,15 @@ library UNISIM;
 use UNISIM.VComponents.all;
 
 library work;
-use work.clock_gen_extr_clk;
-use work.clock_gen_sys_clk;
+--use work.clock_gen_extr_clk;
+--use work.clock_gen_sys_clk;
 use work.UART_RX;
 use work.UART_TX;
 use work.antenn_array_x32_control;
 use work.sinus_form_generator;
+use work.parameters_generator;
 use work.clock_generator;
+
 --use work.my_std_mem.all;
 
 entity Top is
@@ -81,7 +83,7 @@ architecture Behavioral of Top is
     constant c_freq_hz          : integer := 100_000_000;
     constant c_boad_rate        : integer := 230400;
     constant g_CLKS_PER_BIT     : integer := c_freq_hz/c_boad_rate;
-    type state_machine          is (idle, read_command, send_confirm, load_sinus, load_param1, load_param1_cont, ext_state_start, ext_state);
+    type state_machine          is (idle, read_command, send_confirm, load_sinus, load_param1, load_param1_cont, ext_state_start, ext_state, ext_start_contin);
     signal state, next_state    : state_machine;
     signal clk_counter          : std_logic_vector(25 downto 0);
     signal counter25_d          : std_logic;
@@ -112,8 +114,12 @@ architecture Behavioral of Top is
     signal uart_rx_byte_valid   : std_logic;
     signal contrl_reg           : std_logic_vector(7 downto 0);
     signal param_mem_adda       : std_logic_vector(10 downto 0);
+    signal param_mem_address    : std_logic_vector(9 downto 0);
     signal param_mem_dina       : std_logic_vector(7 downto 0);
     signal param_mem_wea        : std_logic;
+    signal param_generator_addr  : std_logic_vector(9 downto 0);
+    signal param_generator_data  : std_logic_vector(7 downto 0);
+    signal param_generator_wr_en : std_logic;
     signal antenn_data_valid    : std_logic;
     signal param_mem_load       : std_logic;
     signal clk_next_chip        : std_logic;
@@ -132,6 +138,7 @@ architecture Behavioral of Top is
     signal sys_clk_pll_lock     : std_logic;
     signal ext_clk_pll_lock     : std_logic;
     signal ext_clk_pll_rst      : std_logic;
+    signal ext_start_up         : std_logic;
     
 begin
 
@@ -182,7 +189,7 @@ leds_out(0) <= not sys_clk_pll_lock;
 --    lock        => ext_clk_pll_lock
 --    );
 
-leds_out(1) <= not clk_select;
+--leds_out(1) <= not clk_select;
 
 clk_select <= '0' when (init_addr = 0) else '1';
 
@@ -282,23 +289,43 @@ sin_gen : entity sinus_form_generator
       wr_en     => sinus_form_generator_wr_en
     );
 
+param_gen : entity parameters_generator
+    generic map(
+      c_num_emitter     => 32,
+      c_num_harmonics   => 8
+    )
+    Port map(
+      clk               => clk_100MHz,
+      rst               => rst,
+      start             => external_start,
+      addr              => param_generator_addr,
+      data              => param_generator_data,
+      wr_en             => param_generator_wr_en
+    );
+
 --external_start <= ext_start;
 
---leds_out(1) <= not start_en;
+leds_out(1) <= not start_en;
 
 command_byte_proc :
   process(clk_100MHz)
   begin 
     if rising_edge(clk_100MHz) then
-      if (uart_rx_byte_valid = '1') and (state = read_command) then
-        case uart_rx_byte is
+      if rst = '1' then 
+        start_en <= '0';
+      else
+        if (uart_rx_byte_valid = '1') and (state = read_command) then
+          case uart_rx_byte is
           when "00000000" =>
-            start_en <= '0';
+              start_en <= '0';
           when "00000001" =>
-            start_en <= '1';
+              start_en <= '1';
           when others => 
-        end case;
-        confirm_byte <= uart_rx_byte;
+          end case;
+          confirm_byte <= uart_rx_byte;
+        elsif ext_start_up = '1' then
+          start_en <= '1';
+        end if;
       end if;
     end if;
   end process;
@@ -344,37 +371,43 @@ sync_proc :
   end process;
 
 out_proc :
-  process(state, uart_rx_byte_valid, sinus_form_generator_wr_en)
+  process(state, uart_rx_byte_valid, sinus_form_generator_wr_en, param_generator_wr_en)
   begin
     confirm_push_en <= '0';
     rst_uart <= '0';
     sin_mem_wea <= '0';
+    param_mem_wea <= '0';
     param_mem_load <= '0';
     external_start <= '0';
+    ext_start_up <= '0';
       case state is 
         when idle => 
           rst_uart <= '1';
         when send_confirm => 
           confirm_push_en <= '1';
         when ext_state_start =>
-          sin_mem_wea <= sinus_form_generator_wr_en;
           external_start <= '1';
         when ext_state =>
           sin_mem_wea <= sinus_form_generator_wr_en;
+          param_mem_wea <= param_generator_wr_en;
         when load_sinus => 
           sin_mem_wea <= uart_rx_byte_valid;
         when load_param1 =>
           param_mem_wea <= uart_rx_byte_valid;
         when load_param1_cont =>
           param_mem_load <= '1';
+        when ext_start_contin =>
+          ext_start_up <= '1';
+          param_mem_load <= '1';
         when others =>
       end case;
   end process;
   sin_mem_dina <= sinus_form_generator_data when (state = ext_state_start) or (state = ext_state) else uart_rx_byte;
   sin_mem_address <= sinus_form_generator_addr when (state = ext_state_start) or (state = ext_state) else sin_mem_adda(10 downto 0);
-
+  param_mem_dina <= param_generator_data when (state = ext_state_start) or (state = ext_state) else uart_rx_byte;
+  param_mem_address <= param_generator_addr when (state = ext_state_start) or (state = ext_state) else param_mem_adda(param_mem_adda'length - 2 downto 0);
 next_state_proc :
-  process(state, uart_rx_byte_valid, uart_rx_byte, sin_mem_adda, param_mem_adda, ext_start, sinus_form_generator_wr_en)
+  process(state, uart_rx_byte_valid, uart_rx_byte, sin_mem_adda, param_mem_adda, ext_start, sinus_form_generator_wr_en, param_generator_wr_en)
   begin
     next_state <= state;
       case state is
@@ -400,9 +433,11 @@ next_state_proc :
         when ext_state_start =>
           next_state <= ext_state;
         when ext_state =>
-          if (sinus_form_generator_wr_en = '0') then
-            next_state <= read_command;
+          if ((sinus_form_generator_wr_en = '0') and (param_generator_wr_en = '0')) then
+            next_state <= ext_start_contin;
           end if;
+        when ext_start_contin =>
+          next_state <= read_command;
         when load_sinus =>
           if (sin_mem_adda(11) = '1') then
             next_state <= send_confirm;
@@ -436,8 +471,8 @@ antenn_array_x32_control_inst : entity antenn_array_x32_control
       sin_mem_addra                 => sin_mem_address,
       sin_mem_dina                  => sin_mem_dina,
       en                            => start_en,
-      param_mem_adda                => param_mem_adda(param_mem_adda'length - 2 downto 0),
-      param_mem_dina                => uart_rx_byte,
+      param_mem_adda                => param_mem_address,
+      param_mem_dina                => param_mem_dina,
       param_mem_wea                 => param_mem_wea,
       param_mem_load                => param_mem_load,
       antenn_addr                   => antenn_addr_out(i),

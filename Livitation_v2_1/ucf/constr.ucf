@@ -99,23 +99,14 @@ NET "diff_clk_p_in" LOC = E10;
 NET "diff_clk_p_out" LOC = F10;
 
 NET "sys_clk" LOC = A10;
-NET "sys_clk" TNM_NET = "CLK1";
-TIMESPEC TS_CLK1 = PERIOD "CLK1" 20 ns HIGH 50 %;
+NET "sys_clk" TNM_NET = "SYS_CLK_50MHz";
+TIMESPEC TS_CLK1 = PERIOD "SYS_CLK_50MHz" 20 ns HIGH 50 %;
 
-#NET "clk_gen_ist/clk0_out" TNM_NET = "CLK_MAIN";
-#TIMESPEC TS_CLK_MAIN = PERIOD "CLK_MAIN" 5 ns HIGH 50 %;
+NET "clk_gen_inst/clk_100MHz_out"  TNM_NET = "CLK_100MHz";
+TIMESPEC TS_CLK_100MHz = PERIOD "CLK_100MHz" 10 ns HIGH 50 %;
 
-#NET "clk_gen_ist/clk1_out" TNM_NET = "CLK_50MHz";
-#TIMESPEC TS_CLK_50MHz = PERIOD "CLK_50MHz" 20 ns HIGH 50 %;
-
-#NET "clk_gen_ist/clk2_out" TNM_NET = "CLK_100MHz";
-#TIMESPEC TS_CLK_100MHz = PERIOD "CLK_100MHz" 10 ns HIGH 50 %;
-
-
-#NET "diff_clk_p_in" CLOCK_DEDICATED_ROUTE = FALSE;
-#PIN "clk_gen_ist/bufg3_inst.O" CLOCK_DEDICATED_ROUTE = FALSE;
-#NET "sys_clk" CLOCK_DEDICATED_ROUTE = FALSE;
-
+NET "clk_gen_inst/clk_200MHz_out"  TNM_NET = "CLK_200MHz";
+TIMESPEC TS_CLK_200MHz = PERIOD "CLK_200MHz" 5 ns HIGH 50 %;
 
 
 

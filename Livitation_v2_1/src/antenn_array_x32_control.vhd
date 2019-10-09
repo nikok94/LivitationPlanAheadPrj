@@ -58,7 +58,6 @@ architecture Behavioral of antenn_array_x32_control is
     signal clk_counter              : std_logic_vector(clog2(c_num_div_clk) - 1 downto 0):= (others => '0');
     signal antenn_addr_edge         : std_logic;
     signal antenn_address           : std_logic_vector(clog2(c_num_emitter) - 1 downto 0):= (others => '0');
-    signal en_d                     : std_logic:= '0';
     signal start                    : std_logic;
     signal new_adrr                 : std_logic_vector(clog2(c_num_harmonics)-1 downto 0):= (others => '0');
     signal sin_mem_b_addr           : std_logic_vector(c_sin_mem_addr_length - 1 downto 0):= (others => '0');
@@ -70,6 +69,11 @@ architecture Behavioral of antenn_array_x32_control is
     signal get_param_wea            : std_logic;
     signal get_param_addra          : std_logic_vector(clog2(4*c_num_emitter * c_num_harmonics)-1 downto 0);
     signal get_param_dina           : std_logic_vector(15 downto 0);
+    signal get_param_wea_d          : std_logic;
+    signal get_param_addra_d        : std_logic_vector(clog2(4*c_num_emitter * c_num_harmonics)-1 downto 0);
+    signal get_param_dina_d         : std_logic_vector(15 downto 0);
+    
+    
     signal sin_mem_byte             : std_logic_vector(7 downto 0);
     signal sin_mem_byte_d           : std_logic_vector(7 downto 0);
     signal data_out_valid           : std_logic;
@@ -94,12 +98,32 @@ architecture Behavioral of antenn_array_x32_control is
     signal sync_param_mem_dina      : std_logic_vector(7 downto 0);
     signal sync_param_mem_wea       : std_logic;
     signal sync_param_mem_load      : std_logic;
-    
-    
-    
-    
+    signal en_to_sync_vec           : std_logic_vector(7 downto 0);
+    signal en_sync_vec              : std_logic_vector(3 downto 0);
+    signal sync_en                  : std_logic;
 
 begin
+en_to_sync_proc :
+  process(sys_clk)
+  begin
+    if rising_edge(sys_clk) then
+      en_to_sync_vec(7 downto 1) <= en_to_sync_vec(6 downto 0);
+      en_to_sync_vec(0) <= en;
+    end if;
+  end process;
+
+start_sync_proc :
+  process(clk)
+  begin
+    if rising_edge(clk) then
+      en_sync_vec(3 downto 1) <= en_sync_vec(2 downto 0);
+      en_sync_vec(0) <= en_to_sync_vec(7);
+      start <= not en_sync_vec(3) and en_sync_vec(2);
+    end if;
+  end process;
+  
+sync_en <= en_sync_vec(2);
+
 next_new_param_buf_en <= '1' when (antenn_address = c_max_emitter and antenn_addr_edge = '1') else '0';
 
 param_buff_addr_proc :
@@ -115,8 +139,6 @@ param_buff_addr_proc :
           new_param_buff_addr <= not param_buff_addr;
         end if;
 
-        en_d <= en;
-
     end if;
   end process;
 
@@ -124,7 +146,7 @@ timer_tick_proc:
   process(clk)
   begin
     if rising_edge(clk) then
-      if (en = '0') then
+      if (sync_en = '0') then
         clk_counter <= (others => '0');
       elsif clk_counter = c_num_harmonics then
         clk_counter <= (others => '0');
@@ -208,7 +230,7 @@ out_process :
   process(clk)
   begin
     if rising_edge(clk) then
-      if (en = '0') then
+      if (sync_en = '0') then
         antenn_data_valid <= '0';
         antenn_data <= (others => '0');
         antenn_addr <= (others => '0');
@@ -228,7 +250,7 @@ antenn_address_proc :
   process(clk)
   begin
     if rising_edge(clk) then
-      if (en = '0') then
+      if (sync_en = '0') then
         antenn_address <= (others => '0');
         antenn_addr_edge <= '0';
       else
@@ -243,7 +265,6 @@ antenn_address_proc :
     end if;
   end process;
 
-start <= en and (not en_d);
 param_mem_addb <= (new_param_buff_addr) & antenn_address & clk_counter(2 downto 0);
 
 amp_mult_sin_byte_proc:
@@ -265,12 +286,23 @@ amp_mult_sin_byte_proc:
   end process;
 
 
+get_param_wr_d_proc :
+  process(clk)
+  begin
+    if rising_edge(clk) then
+      get_param_wea_d   <= get_param_wea;
+      get_param_addra_d <= get_param_addra;
+      get_param_dina_d  <= get_param_dina;
+    end if;
+  end process;
+
+
 get_param_mem_inst : ENTITY get_param_mem
   PORT map(
     clka    => clk,
-    wea(0)  => get_param_wea,
-    addra   => get_param_addra,
-    dina    => get_param_dina,
+    wea(0)  => get_param_wea_d,
+    addra   => get_param_addra_d,
+    dina    => get_param_dina_d,
     clkb    => clk,
     addrb   => param_mem_addb,
     doutb   => param_mem_dout

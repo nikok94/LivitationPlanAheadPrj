@@ -45,7 +45,7 @@ entity sinus_form_generator is
 end sinus_form_generator;
 
 architecture Behavioral of sinus_form_generator is
-    type sin_form_ROM   is array (2047 downto 0) of std_logic_vector(7 downto 0);
+    type sin_form_ROM   is array (0 to 2047) of std_logic_vector(7 downto 0);
     constant sin_form : sin_form_ROM :=
     (x"7F",
      x"7F",
@@ -2115,8 +2115,7 @@ addr_proc :
           data_counter <= data_counter + 1;
         end if;
       end if;
-      data_d <= sin_form(to_integer(unsigned(data_counter(data_counter'length - 2 downto 0))));
-      data <= data_d;
+      data <= sin_form(to_integer(unsigned(data_counter(data_counter'length - 2 downto 0))));
       addr <= data_counter(addr'length - 1 downto 0);
       wr_en <= not(data_counter(data_counter'length - 1));
     end if;
