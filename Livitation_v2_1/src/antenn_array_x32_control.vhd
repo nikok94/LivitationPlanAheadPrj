@@ -58,8 +58,10 @@ architecture Behavioral of antenn_array_x32_control is
     signal clk_counter              : std_logic_vector(clog2(c_num_div_clk) - 1 downto 0):= (others => '0');
     signal antenn_addr_edge         : std_logic;
     signal antenn_address           : std_logic_vector(clog2(c_num_emitter) - 1 downto 0):= (others => '0');
+    signal antenn_address_d         : std_logic_vector(clog2(c_num_emitter) - 1 downto 0):= (others => '0');
     signal start                    : std_logic;
     signal new_adrr                 : std_logic_vector(clog2(c_num_harmonics)-1 downto 0):= (others => '0');
+    signal new_adrr_d               : std_logic_vector(clog2(c_num_harmonics)-1 downto 0):= (others => '0');
     signal sin_mem_b_addr           : std_logic_vector(c_sin_mem_addr_length - 1 downto 0):= (others => '0');
     signal freq_step                : std_logic_vector(c_sin_mem_addr_length - 1 downto 0):= (others => '0');
     signal ampl_byte                : std_logic_vector(7 downto 0):=(others => '0');
@@ -83,6 +85,7 @@ architecture Behavioral of antenn_array_x32_control is
     signal fifo_non_simetric_rd_addr: std_logic_vector(clog2(2*c_num_emitter * c_num_harmonics)-1 downto 0);
     signal param_buff_addr          : std_logic:= '0';
     signal new_param_buff_addr      : std_logic:= '0';
+    signal new_param_buff_addr_d    : std_logic:= '0';
     signal data_summ_en             : std_logic;
     signal data_out                 : std_logic_vector(10 downto 0);
     signal new_param_wr_en_d        : std_logic;
@@ -199,11 +202,29 @@ fifo_non_simetric_inst : entity fifo_non_simetric
       o_empty           => fifo_non_simetric_empty
     );
 
-new_param_wr_en <= '1' when clk_counter > 0 else '0';
-fifo_non_simetric_rd_en <= not (fifo_non_simetric_empty or new_param_wr_en);
+new_param_wr_en_proc : 
+  process(clk)
+  begin
+    if rising_edge(clk) then
+      if (clk_counter > 0) then
+        new_param_wr_en <= '1';
+        ampl_byte(7 downto 0) <= param_mem_dout(23 downto 16);
+      else
+        new_param_wr_en <= '0';
+      end if;
+      sin_mem_b_addr <= param_mem_dout(c_sin_mem_addr_length - 1 downto 0);
+      freq_step(7 downto 0) <= param_mem_dout(31 downto 24);
+      antenn_address_d <= antenn_address;
+      new_adrr_d <= new_adrr;
+      new_param_buff_addr_d <= new_param_buff_addr;
+    end if;
+  end process;
 
-sin_mem_b_addr <= param_mem_dout(c_sin_mem_addr_length - 1 downto 0);
-freq_step(7 downto 0) <= param_mem_dout(31 downto 24);
+--new_param_wr_en <= '1' when clk_counter > 0 else '0';
+
+
+
+fifo_non_simetric_rd_en <= not (fifo_non_simetric_empty or new_param_wr_en);
 
 get_param_proc : 
   process(clk)
@@ -211,11 +232,10 @@ get_param_proc :
     if rising_edge(clk) then
         if (new_param_wr_en = '1') then
           get_param_wea <= '1';
-          get_param_addra <= new_param_buff_addr & antenn_address & new_adrr & '0';
+          get_param_addra <= new_param_buff_addr_d & antenn_address_d & new_adrr_d & '0';
           get_param_dina(15 downto c_sin_mem_addr_length) <= (others => '0');
           get_param_dina(c_sin_mem_addr_length - 1 downto 0) <= sin_mem_b_addr + freq_step;
-          ampl_byte(7 downto 0) <= param_mem_dout(23 downto 16);
-        elsif (fifo_non_simetric_empty = '0') then 
+        elsif (fifo_non_simetric_rd_en = '1') then 
           get_param_wea <= '1';
           get_param_addra <= param_buff_addr & fifo_non_simetric_rd_addr;
           get_param_dina <= fifo_non_simetric_dout;
@@ -286,23 +306,25 @@ amp_mult_sin_byte_proc:
   end process;
 
 
-get_param_wr_d_proc :
-  process(clk)
-  begin
-    if rising_edge(clk) then
-      get_param_wea_d   <= get_param_wea;
-      get_param_addra_d <= get_param_addra;
-      get_param_dina_d  <= get_param_dina;
-    end if;
-  end process;
+--get_param_wr_d_proc :
+--  process(clk)
+--  begin
+--    if rising_edge(clk) then
+--      get_param_wea_d   <= get_param_wea;
+--      get_param_addra_d <= get_param_addra;
+--      get_param_dina_d  <= get_param_dina;
+--    end if;
+--  end process;
+
+
 
 
 get_param_mem_inst : ENTITY get_param_mem
   PORT map(
     clka    => clk,
-    wea(0)  => get_param_wea_d,
-    addra   => get_param_addra_d,
-    dina    => get_param_dina_d,
+    wea(0)  => get_param_wea,
+    addra   => get_param_addra,
+    dina    => get_param_dina,
     clkb    => clk,
     addrb   => param_mem_addb,
     doutb   => param_mem_dout
