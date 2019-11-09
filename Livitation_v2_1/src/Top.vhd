@@ -87,6 +87,9 @@ architecture Behavioral of Top is
     signal param_mem_load       : std_logic;
     signal sin_data_buff        : sim_mem_type;
     signal antenn_addr          : std_logic_vector(3 downto 0);
+    signal uart_tx_byte         : std_logic_vector(7 downto 0);
+    signal uart_tx_done         : std_logic;
+    signal uart_tx_active       : std_logic;
 
 begin
 
@@ -111,10 +114,10 @@ uart_tx_inst :  entity UART_TX
   port map(
     i_Clk           => clk_125MHz,
     i_TX_DV         => confirm_push_en,
-    i_TX_Byte       => contrl_reg,
-    o_TX_Active     => open,
+    i_TX_Byte       => uart_tx_byte,
+    o_TX_Active     => uart_tx_active,
     o_TX_Serial     => u_tx,
-    o_TX_Done       => open
+    o_TX_Done       => uart_tx_done
     );
 
 button1_push_proc :

@@ -29,11 +29,11 @@ add_files -norecurse ../src/UART_RX.vhd
 add_files -norecurse ../src/UART_TX.vhd
 add_files -norecurse ../src/blk_mem_gen_v7_3_0/sin_mem.xci
 add_files -norecurse ../src/blk_mem_gen_v7_3_1/get_param_mem.xci
-
+add_files -norecurse ../src/sinus_form_generator.vhd
 ########################################################################
 # UCF
 add_files -fileset [current_fileset -constrset] -norecurse ../ucf/constr.ucf
-set_property target_constrs_file ../ucf/constr.ucf [current_fileset -constrset]
+#set_property target_constrs_file ../ucf/constr.ucf [current_fileset -constrset]
 
 
 #set_property SOURCE_SET sources_1 [get_filesets sim_1]
