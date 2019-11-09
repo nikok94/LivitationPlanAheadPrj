@@ -14,7 +14,7 @@ NET "ant_array1_addr[3]" IOSTANDARD = LVCMOS33;
 
 #NET "wr" IOSTANDARD = LVCMOS33;
 #NET "cs" IOSTANDARD = LVCMOS33;
-NET "u_rx" IOSTANDARD = LVCMOS33;
+
 NET "sys_clk" LOC = A10;
 NET "sys_clk" TNM_NET = "CLK1";
 TIMESPEC TS_CLK1 = PERIOD "CLK1" 20 ns HIGH 50 %;
@@ -23,8 +23,12 @@ NET "leds_out[0]" LOC = T9;
 NET "leds_out[1]" LOC = R9;
 NET "button1_in" LOC = R7;
 NET "button2_in" LOC = T8;
+
+## UART
 NET "u_tx" LOC = T12;
+NET "u_tx" IOSTANDARD = LVCMOS33;
 NET "u_rx" LOC = R12;
+NET "u_rx" IOSTANDARD = LVCMOS33;
 
 #NET "wr" LOC = 
 #NET "cs" LOC = 
@@ -43,4 +47,4 @@ NET "ant_array1_addr[3]" LOC = M13;
 
 
 
-NET "u_tx" IOSTANDARD = LVCMOS33;
+

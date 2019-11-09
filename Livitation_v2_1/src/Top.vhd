@@ -30,6 +30,7 @@ use work.clock_generator;
 use work.UART_RX;
 use work.UART_TX;
 use work.antenn_array_x16_control;
+use work.uart_tx_fifo;
 use work.my_std_mem.all;
 
 entity Top is
@@ -48,10 +49,11 @@ entity Top is
 end Top;
 
 architecture Behavioral of Top is
+    constant chip_id_byte       : std_logic_vector(7 downto 0):=x"42";  
     constant c_freq_hz          : integer := 125000000;
-    constant c_boad_rate        : integer := 230400;
+    constant c_boad_rate        : integer := 921600;
     constant g_CLKS_PER_BIT     : integer := c_freq_hz/c_boad_rate;
-    type state_machine          is (idle, read_command, send_confirm, load_sinus, load_param1, load_param1_cont);
+    type state_machine          is (idle, read_command, send_confirm, load_sinus, load_param1, load_param1_cont, chip_id_req, send_chip_id);
     signal state, next_state    : state_machine;
     signal clk_counter          : std_logic_vector(25 downto 0);
     signal counter25_d          : std_logic;
@@ -89,13 +91,22 @@ architecture Behavioral of Top is
     signal antenn_addr          : std_logic_vector(3 downto 0);
     signal uart_tx_byte         : std_logic_vector(7 downto 0);
     signal uart_tx_done         : std_logic;
+    signal uart_tx_dv           : std_logic;
     signal uart_tx_active       : std_logic;
+    signal chip_id_req_counter  : std_logic_vector(5 downto 0);
+    signal chip_id_req_error    : std_logic;
+    signal chip_id_send_counter : std_logic_vector(2 downto 0);
+    signal uart_tx_fifo_din     : std_logic_vector(7 downto 0);
+    signal uart_tx_fifo_dout    : std_logic_vector(7 downto 0);
+    signal uart_tx_fifo_wr_en   : std_logic;
+    signal uart_tx_fifo_rd_en   : std_logic;
+    signal uart_tx_fifo_full    : std_logic;
+    signal uart_tx_fifo_empty   : std_logic;
+    signal uart_tx_fifo_valid   : std_logic;
+    signal uart_tx_en           : std_logic;
 
 begin
-
---wr  <= '0' when start_en = '1' and antenn_addr = 0 else '1';
---cs  <= '0' when start_en = '1' and antenn_addr = 0 else '1';
-
+-- UART RX Module
 uart_rx_inst :  entity UART_RX
   generic map(
     g_CLKS_PER_BIT => g_CLKS_PER_BIT
@@ -106,19 +117,162 @@ uart_rx_inst :  entity UART_RX
     o_RX_DV         => uart_rx_byte_valid,
     o_RX_Byte       => uart_rx_byte
     );
-
+-- UART TX Module
 uart_tx_inst :  entity UART_TX 
   generic map(
     g_CLKS_PER_BIT  => g_CLKS_PER_BIT
     )
   port map(
     i_Clk           => clk_125MHz,
-    i_TX_DV         => confirm_push_en,
+    i_TX_DV         => uart_tx_dv,
     i_TX_Byte       => uart_tx_byte,
     o_TX_Active     => uart_tx_active,
     o_TX_Serial     => u_tx,
     o_TX_Done       => uart_tx_done
     );
+
+uart_tx_byte <= uart_tx_fifo_dout;
+uart_tx_dv <= uart_tx_fifo_valid;
+uart_tx_fifo_rd_en <= uart_tx_done and uart_tx_active;
+
+-- UART TX FIFO
+UART_TX_FIFO_inst : ENTITY uart_tx_fifo
+  PORT MAP(
+    clk     => clk_125MHz,
+    rst     => rst,
+    din     => uart_tx_fifo_din,
+    wr_en   => uart_tx_fifo_wr_en,
+    rd_en   => uart_tx_fifo_rd_en,
+    dout    => uart_tx_fifo_dout,
+    full    => uart_tx_fifo_full,
+    empty   => uart_tx_fifo_empty,
+    valid   => uart_tx_fifo_valid
+  );
+
+uart_tx_fifo_wr_en <= uart_tx_en and (not uart_tx_fifo_full);
+
+-- UART STATE MACHINE
+sync_proc :
+  process(clk_125MHz)
+  begin
+    if rising_edge(clk_125MHz) then
+      if rst = '1' then 
+        state <= idle;
+      else
+        state <= next_state;
+      end if;
+    end if;
+  end process;
+
+out_proc :
+  process(state, uart_rx_byte_valid, chip_id_byte)
+  begin
+    confirm_push_en <= '0';
+    rst_uart <= '0';
+    sin_mem_wea <= '0';
+    param_mem_load <= '0';
+    uart_tx_en <= '0';
+      case state is 
+        when idle => 
+          rst_uart <= '1';
+        when send_confirm => 
+          confirm_push_en <= '1';
+        when load_sinus => 
+          sin_mem_wea <= uart_rx_byte_valid;
+        when load_param1 =>
+          param_mem_wea <= uart_rx_byte_valid;
+        when load_param1_cont =>
+          param_mem_load <= '1';
+        when send_chip_id =>
+          uart_tx_en <= '1';
+          uart_tx_fifo_din <= chip_id_byte;
+        when others =>
+      end case;
+  end process;
+
+next_state_proc :
+  process(state, uart_rx_byte_valid, uart_rx_byte, sin_mem_adda, param_mem_adda, chip_id_req_error, chip_id_req_counter, chip_id_send_counter)
+  begin
+    next_state <= state;
+      case state is
+        when idle =>
+          next_state <= read_command;
+        when read_command =>
+          if (uart_rx_byte_valid = '1') then 
+            case uart_rx_byte is
+              when "00000000" =>
+                next_state <= send_confirm;
+              when "00000001" =>
+                next_state <= send_confirm;
+              when "00000010" =>
+                next_state <= load_sinus;
+              when "00000011" =>
+                next_state <= load_param1;
+              when x"40" => 
+                next_state <= chip_id_req;
+              when others => 
+                next_state <= idle;
+            end case;
+          end if;
+        when load_sinus =>
+          if (sin_mem_adda(11) = '1') then
+            next_state <= send_confirm;
+          end if;
+        when load_param1 => 
+          if (param_mem_adda(9) = '1') then
+            next_state <= load_param1_cont;
+          end if;
+        when load_param1_cont => 
+           next_state <= send_confirm;
+        when send_confirm => 
+          next_state <= idle;
+        when chip_id_req =>
+          if (chip_id_req_error = '1') then
+            next_state <= idle;
+          end if;
+          if (chip_id_req_counter(4 downto 0) = "11111") then
+            next_state <= send_chip_id;
+          end if;
+        when send_chip_id =>
+          if (chip_id_send_counter = "011") then
+            next_state <= idle;
+          end if;
+        when others =>
+          next_state <= idle;
+      end case;
+  end process;
+
+send_chip_id_proc :
+  process(clk_125MHz)
+  begin
+    if rising_edge(clk_125MHz) then
+      if (state = send_chip_id) then
+        if uart_tx_fifo_wr_en = '1' then
+          chip_id_send_counter <= chip_id_send_counter + 1;
+        else
+          chip_id_send_counter <= (others => '0')
+      end if;
+    end if;
+  end process;
+
+chip_id_req_poc :
+  process(clk_125MHz)
+  begin
+    if rising_edge(clk_125MHz) then
+      if (state = chip_id_req) then
+        if (uart_rx_byte_valid = '1') then
+          if (uart_rx_byte = x"40") then
+            chip_id_req_counter <= chip_id_req_counter + 1;
+          else
+            chip_id_req_error <= '1';
+          end if;
+        end if;
+      else
+        chip_id_req_error <= '0';
+        chip_id_req_counter <= (others => '0');
+      end if;
+    end if;
+  end process;
 
 button1_push_proc :
   process(clk_125MHz)
@@ -204,78 +358,6 @@ param_mem_adda_proc :
       end if;
     end if;
   end process;
-
-sync_proc :
-  process(clk_125MHz)
-  begin
-    if rising_edge(clk_125MHz) then
-      if rst = '1' then 
-        state <= idle;
-      else
-        state <= next_state;
-      end if;
-    end if;
-  end process;
-
-out_proc :
-  process(state, uart_rx_byte_valid)
-  begin
-    confirm_push_en <= '0';
-    rst_uart <= '0';
-    sin_mem_wea <= '0';
-    param_mem_load <= '0';
-      case state is 
-        when idle => 
-          rst_uart <= '1';
-        when send_confirm => 
-          confirm_push_en <= '1';
-        when load_sinus => 
-          sin_mem_wea <= uart_rx_byte_valid;
-        when load_param1 =>
-          param_mem_wea <= uart_rx_byte_valid;
-        when load_param1_cont =>
-          param_mem_load <= '1';
-        when others =>
-      end case;
-  end process;
-
-next_state_proc :
-  process(state, uart_rx_byte_valid, uart_rx_byte, sin_mem_adda, param_mem_adda)
-  begin
-    next_state <= state;
-      case state is
-        when idle =>
-          next_state <= read_command;
-        when read_command =>
-          if (uart_rx_byte_valid = '1') then 
-            case uart_rx_byte is
-              when "00000000" =>
-                next_state <= send_confirm;
-              when "00000001" =>
-                next_state <= send_confirm;
-              when "00000010" =>
-                next_state <= load_sinus;
-              when "00000011" =>
-                next_state <= load_param1;
-              when others => 
-                next_state <= idle;
-            end case;
-          end if;
-        when load_sinus =>
-          if (sin_mem_adda(11) = '1') then
-            next_state <= send_confirm;
-          end if;
-        when load_param1 => 
-          if (param_mem_adda(9) = '1') then
-            next_state <= load_param1_cont;
-          end if;
-        when load_param1_cont => 
-           next_state <= send_confirm;
-        when send_confirm => 
-          next_state <= idle;
-      end case;
-  end process;
-
 
 antenn_array_x16_control_inst : entity antenn_array_x16_control 
     Port map( 
