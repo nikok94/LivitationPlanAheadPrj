@@ -249,8 +249,9 @@ send_chip_id_proc :
       if (state = send_chip_id) then
         if uart_tx_fifo_wr_en = '1' then
           chip_id_send_counter <= chip_id_send_counter + 1;
-        else
-          chip_id_send_counter <= (others => '0')
+        end if;
+      else
+        chip_id_send_counter <= (others => '0');
       end if;
     end if;
   end process;
