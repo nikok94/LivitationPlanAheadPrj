@@ -31,7 +31,6 @@ use work.UART_RX;
 use work.UART_TX;
 use work.antenn_array_x16_control;
 use work.uart_tx_fifo;
-use work.my_std_mem.all;
 
 entity Top is
     Port ( 
@@ -87,7 +86,6 @@ architecture Behavioral of Top is
     signal param_mem_wea        : std_logic;
     signal antenn_data_valid    : std_logic;
     signal param_mem_load       : std_logic;
-    signal sin_data_buff        : sim_mem_type;
     signal antenn_addr          : std_logic_vector(3 downto 0);
     signal uart_tx_byte         : std_logic_vector(7 downto 0);
     signal uart_tx_done         : std_logic;
@@ -165,7 +163,7 @@ sync_proc :
   end process;
 
 out_proc :
-  process(state, uart_rx_byte_valid, chip_id_byte)
+  process(state, uart_rx_byte_valid)
   begin
     confirm_push_en <= '0';
     rst_uart <= '0';
