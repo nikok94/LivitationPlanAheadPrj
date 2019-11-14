@@ -4,7 +4,7 @@
 #
 
 set root_dir [ file normalize [file dirname [info script]]/../ ]
-set device "xc6slx9tqg144-2"
+set device "xc6slx16ftg256-2"
 set prj_name "SFTI_Livitation"
 set language "VHDL"
 

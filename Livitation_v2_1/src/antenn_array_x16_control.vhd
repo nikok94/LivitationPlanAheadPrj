@@ -23,17 +23,17 @@ use work.sin_mem;
 
 entity antenn_array_x16_control is
     generic (
-      c_sin_mem_addr_length         : integer := 11;
-      c_param_mem_addr_length       : integer := 8
+      c_form_mem_addr_length        : integer := 14;
+      c_param_mem_addr_length       : integer := 5
     );
     Port ( 
       clk                           : in std_logic;
       en                            : in std_logic;
-      sin_mem_wea                   : in std_logic;
-      sin_mem_addra                 : in std_logic_vector(c_sin_mem_addr_length - 1 downto 0);
-      sin_mem_dina                  : in std_logic_vector(7 downto 0);
+      form_mem_wea                  : in std_logic;
+      form_mem_addra                : in std_logic_vector(c_form_mem_addr_length - 1 downto 0);
+      form_mem_dina                 : in std_logic_vector(7 downto 0);
       
-      param_mem_adda                : in std_logic_vector(c_param_mem_addr_length downto 0);
+      param_mem_adda                : in std_logic_vector(5 downto 0);
       param_mem_dina                : in std_logic_vector(7 downto 0);
       param_mem_wea                 : in std_logic;
       param_mem_load                : in std_logic;
@@ -45,20 +45,16 @@ end antenn_array_x16_control;
 
 architecture Behavioral of antenn_array_x16_control is
 
-    signal param_mem_addb           : std_logic_vector(7 downto 0):= (others => '0');
+    signal param_mem_addb           : std_logic_vector(4 downto 0):= (others => '0');
     signal param_mem_dout           : std_logic_vector(31 downto 0);
     signal clk_counter              : std_logic_vector(3 downto 0):= (others => '0');
     signal antenn_addr_edge         : std_logic;
     signal antenn_address           : std_logic_vector(3 downto 0):= (others => '0');
-    signal data_out                 : std_logic_vector(18 downto 0):= (others => '0');
-    signal to_data_out              : std_logic_vector(18 downto 0):= (others => '0');
+    signal data_out                 : std_logic_vector(15 downto 0):= (others => '0');
+    signal to_data_out              : std_logic_vector(15 downto 0):= (others => '0');
     signal en_d                     : std_logic:= '0';
     signal start                    : std_logic;
-    signal clk_x8_counter           : std_logic_vector(3 downto 0):= "1000";
-    signal clk_x8_counter_d         : std_logic_vector(3 downto 0):= "1000";
-    signal clk_x8_counter_d1        : std_logic_vector(3 downto 0):= "1000";
-    signal new_adrr_l               : std_logic_vector(clk_x8_counter'length - 2 downto 0):=(others => '0');
-    signal sin_mem_b_addr           : std_logic_vector(15 downto 0):= (others => '0');
+    signal form_mem_b_addr          : std_logic_vector(15 downto 0):= (others => '0');
     signal freq_step                : std_logic_vector(15 downto 0):= (others => '0');
     signal ampl_byte                : std_logic_vector(7 downto 0);
     signal ampl_byte_d              : std_logic_vector(7 downto 0);
@@ -69,7 +65,7 @@ architecture Behavioral of antenn_array_x16_control is
     signal get_param_wea            : std_logic;
     signal get_param_addra          : std_logic_vector(c_param_mem_addr_length downto 0);
     signal get_param_dina           : std_logic_vector(15 downto 0);
-    signal sin_mem_byte             : std_logic_vector(7 downto 0);
+    signal form_mem_byte            : std_logic_vector(7 downto 0);
     signal data_out_valid           : std_logic;
     signal fifo_non_simetric_dout   : std_logic_vector(15 downto 0);
     signal fifo_non_simetric_rd_en  : std_logic;
@@ -114,20 +110,20 @@ fifo_non_simetric_inst : entity fifo_non_simetric
       o_empty           => fifo_non_simetric_empty
     );
 
-fifo_non_simetric_rd_en <= not (fifo_non_simetric_empty or new_addr_wr_en_d);
+fifo_non_simetric_rd_en <= not (fifo_non_simetric_empty or new_addr_wr_en);
 
 get_param_wea <= fifo_non_simetric_rd_en or new_addr_wr_en_d;
-get_param_addra <= (not new_param_buff_addr) & antenn_address & (new_adrr_l - 1) & '0' when new_addr_wr_en_d = '1' else param_buff_addr & fifo_non_simetric_rd_addr(7 downto 0);
-get_param_dina <= sin_mem_b_addr + freq_step when new_addr_wr_en_d = '1' else fifo_non_simetric_dout;
---sin_mem_byte <= sin_mem(to_integer(unsigned(sin_mem_b_addr(c_sin_mem_addr_length - 1 downto 0))));
-to_data_out(15 downto 0) <= (sin_mem_byte*ampl_byte_d);
+get_param_addra <= (not new_param_buff_addr) & antenn_address & '0' when new_addr_wr_en_d = '1' else param_buff_addr & fifo_non_simetric_rd_addr(4 downto 0);
+get_param_dina <= form_mem_b_addr + 1 when new_addr_wr_en_d = '1' else fifo_non_simetric_dout;
+--form_mem_byte <= form_mem(to_integer(unsigned(form_mem_b_addr(c_form_mem_addr_length - 1 downto 0))));
+to_data_out(15 downto 0) <= (form_mem_byte*ampl_byte_d);
 
 data_out_proc:
   process(clk)
   begin
     if rising_edge(clk) then
         if new_addr_wr_en_d1 = '1' then
-          data_out <= data_out + to_data_out;
+          data_out <= to_data_out + 1;
         else 
           data_out <= (others => '0');
         end if;
@@ -166,11 +162,10 @@ timer_tick_proc:
   begin
     if rising_edge(clk) then
       en_d <= en;
-      new_addr_wr_en <= not clk_x8_counter(clk_x8_counter'length - 1);
+      new_addr_wr_en <= antenn_addr_edge;
       new_addr_wr_en_d <= new_addr_wr_en;
       new_addr_wr_en_d1 <= new_addr_wr_en_d;
       new_addr_wr_en_d2 <= new_addr_wr_en_d1;
-      new_adrr_l <= clk_x8_counter(clk_x8_counter'length - 2 downto 0);
     end if;
   end process;
 
@@ -181,7 +176,7 @@ out_process :
   begin
     if rising_edge(clk) then
       if data_out_valid = '1' then
-        antenn_data <= data_out(18 downto 11);
+        antenn_data <= data_out(15 downto 8);
         antenn_addr <= antenn_address;
         antenn_data_valid <= '1';
       else
@@ -205,31 +200,13 @@ antenn_address_proc :
   end process;
 
 start <= en and (not en_d);
-param_mem_addb <= (not new_param_buff_addr) & antenn_address & clk_x8_counter(clk_x8_counter'length - 2 downto 0);
-
-clk_x8_counter_proc :
-  process(clk)
-  begin
-    if rising_edge(clk) then
-      if (en = '0') then
-        clk_x8_counter <= (clk_x8_counter'length - 1 => '1', others => '0');
-      else
-        if ((start = '1') or (antenn_addr_edge = '1')) then
-          clk_x8_counter <= (others => '0');
-        elsif clk_x8_counter(clk_x8_counter'length - 1) = '0' then
-          clk_x8_counter <= clk_x8_counter + 1;
-        end if;
-      end if;
-      clk_x8_counter_d <= clk_x8_counter;
-      clk_x8_counter_d1 <= clk_x8_counter_d;
-    end if;
-  end process;
+param_mem_addb <= (not new_param_buff_addr) & antenn_address;
 
 param_read_proc :
   process(clk)
   begin
     if rising_edge(clk) then
-        sin_mem_b_addr(c_sin_mem_addr_length - 1 downto 0) <= param_mem_dout(c_sin_mem_addr_length - 1 downto 0);
+        form_mem_b_addr(c_form_mem_addr_length - 1 downto 0) <= param_mem_dout(c_form_mem_addr_length - 1 downto 0);
         ampl_byte <= param_mem_dout(23 downto 16);
         ampl_byte_d <= ampl_byte;
         freq_step(7 downto 0) <= param_mem_dout(31 downto 24);
@@ -237,15 +214,15 @@ param_read_proc :
   end process;
 
 
-sin_mem_inst : ENTITY sin_mem 
+form_mem_inst : ENTITY sin_mem 
   PORT map(
     clka    => clk,
-    wea(0)  => sin_mem_wea   ,
-    addra   => sin_mem_addra ,
-    dina    => sin_mem_dina  ,
+    wea(0)  => form_mem_wea   ,
+    addra   => form_mem_addra ,
+    dina    => form_mem_dina  ,
     clkb    => clk,
-    addrb   => sin_mem_b_addr(c_sin_mem_addr_length - 1 downto 0),
-    doutb   => sin_mem_byte
+    addrb   => form_mem_b_addr(c_form_mem_addr_length - 1 downto 0),
+    doutb   => form_mem_byte
   );
 
 

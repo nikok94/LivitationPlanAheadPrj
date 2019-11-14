@@ -16,8 +16,8 @@ NET "ant_array1_addr[3]" IOSTANDARD = LVCMOS33;
 #NET "cs" IOSTANDARD = LVCMOS33;
 
 NET "sys_clk" LOC = A10;
-NET "sys_clk" TNM_NET = "CLK1";
-TIMESPEC TS_CLK1 = PERIOD "CLK1" 20 ns HIGH 50 %;
+NET "sys_clk" TNM_NET = "SYS_CLK_50MHz";
+TIMESPEC TS_CLK1 = PERIOD "SYS_CLK_50MHz" 20 ns HIGH 50 %;
 
 NET "leds_out[0]" LOC = T9;
 NET "leds_out[1]" LOC = R9;
@@ -30,20 +30,19 @@ NET "u_tx" IOSTANDARD = LVCMOS33;
 NET "u_rx" LOC = R12;
 NET "u_rx" IOSTANDARD = LVCMOS33;
 
-#NET "wr" LOC = 
-#NET "cs" LOC = 
-NET "ant_array1_data[0]" LOC = T14;
-NET "ant_array1_data[1]" LOC = T13;
-NET "ant_array1_data[2]" LOC = T15;
-NET "ant_array1_data[3]" LOC = R14;
-NET "ant_array1_data[4]" LOC = R16;
-NET "ant_array1_data[5]" LOC = R15;
-NET "ant_array1_data[6]" LOC = P16;
-NET "ant_array1_data[7]" LOC = P15;
-NET "ant_array1_addr[0]" LOC = L13;
-NET "ant_array1_addr[1]" LOC = L12;
-NET "ant_array1_addr[2]" LOC = M14;
-NET "ant_array1_addr[3]" LOC = M13;
+NET "ant_array1_data[0]" LOC = J13;
+NET "ant_array1_data[1]" LOC = K15;
+NET "ant_array1_data[2]" LOC = K16;
+NET "ant_array1_data[3]" LOC = K14;
+NET "ant_array1_data[4]" LOC = J12;
+NET "ant_array1_data[5]" LOC = J11;
+NET "ant_array1_data[6]" LOC = J16;
+NET "ant_array1_data[7]" LOC = J14;
+
+NET "ant_array1_addr[0]" LOC = C13;
+NET "ant_array1_addr[1]" LOC = A13;
+NET "ant_array1_addr[2]" LOC = A14;
+NET "ant_array1_addr[3]" LOC = B14;
 
 
 
