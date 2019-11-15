@@ -40,10 +40,11 @@ entity Top is
         button2_in      : in std_logic;
         u_tx            : out std_logic;
         u_rx            : in std_logic;
-        ant_array1_addr : out std_logic_vector(3 downto 0);
-        ant_array1_data : out std_logic_vector(7 downto 0)--;
---        wr              : out std_logic;
---        cs              : out std_logic
+        ant_array_addr  : out std_logic_vector(3 downto 0);
+        ant_array0_data : out std_logic_vector(7 downto 0);
+        ant_array1_data : out std_logic_vector(7 downto 0);
+        ant_array2_data : out std_logic_vector(7 downto 0);
+        ant_array3_data : out std_logic_vector(7 downto 0)
     );
 end Top;
 
@@ -84,7 +85,6 @@ architecture Behavioral of Top is
     signal param_mem_adda       : std_logic_vector(6 downto 0);
     signal param_mem_dina       : std_logic_vector(7 downto 0);
     signal param_mem_wea        : std_logic_vector(3 downto 0);
-    signal antenn_data_valid    : std_logic;
     signal param_mem_load       : std_logic;
     signal antenn_addr          : std_logic_vector(3 downto 0);
     signal uart_tx_byte         : std_logic_vector(7 downto 0);
@@ -103,7 +103,11 @@ architecture Behavioral of Top is
     signal uart_tx_fifo_valid   : std_logic;
     signal uart_tx_en           : std_logic;
     signal num_emit_byte        : std_logic_vector(7 downto 0);
-    type ant_addr_type  is array (1 downto 0) of std_logic_vector(3 downto 0);
+    type ant_addr_type  is array (3 downto 0) of std_logic_vector(3 downto 0);
+    signal anten_array          : ant_addr_type;
+    type ant_data_type  is array (3 downto 0) of std_logic_vector(7 downto 0);
+    signal data_array           : ant_data_type;
+    signal antenn_data_valid    : std_logic_vector(3 downto 0);
 
 begin
 -- UART RX Module
@@ -392,15 +396,16 @@ antenn_array_x16_control_0 : entity antenn_array_x16_control
       param_mem_dina                => uart_rx_byte,
       param_mem_wea                 => param_mem_wea(i),
       param_mem_load                => param_mem_load,
-      antenn_addr                   => antenn_addr,
-      antenn_data                   => ant_array1_data,
-      antenn_data_valid             => antenn_data_valid
+      antenn_addr                   => anten_array(i),
+      antenn_data                   => data_array(i),
+      antenn_data_valid             => antenn_data_valid(i)
     );
 end generate;
 
-
-
-
-ant_array1_addr <= antenn_addr;
+ant_array_addr  <= anten_array(0);
+ant_array0_data <= data_array(0);
+ant_array1_data <= data_array(1);
+ant_array2_data <= data_array(2);
+ant_array3_data <= data_array(3);
 
 end Behavioral;
