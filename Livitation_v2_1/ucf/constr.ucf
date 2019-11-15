@@ -1,20 +1,3 @@
-NET "ant_array1_data[7]" IOSTANDARD = LVCMOS33;
-NET "ant_array1_data[6]" IOSTANDARD = LVCMOS33;
-NET "ant_array1_data[5]" IOSTANDARD = LVCMOS33;
-NET "ant_array1_data[4]" IOSTANDARD = LVCMOS33;
-NET "ant_array1_data[3]" IOSTANDARD = LVCMOS33;
-NET "ant_array1_data[2]" IOSTANDARD = LVCMOS33;
-NET "ant_array1_data[1]" IOSTANDARD = LVCMOS33;
-NET "ant_array1_data[0]" IOSTANDARD = LVCMOS33;
-NET "ant_array1_addr[0]" IOSTANDARD = LVCMOS33;
-NET "ant_array1_addr[1]" IOSTANDARD = LVCMOS33;
-NET "ant_array1_addr[2]" IOSTANDARD = LVCMOS33;
-NET "ant_array1_addr[3]" IOSTANDARD = LVCMOS33;
-
-
-#NET "wr" IOSTANDARD = LVCMOS33;
-#NET "cs" IOSTANDARD = LVCMOS33;
-
 NET "sys_clk" LOC = A10;
 NET "sys_clk" TNM_NET = "SYS_CLK_50MHz";
 TIMESPEC TS_CLK1 = PERIOD "SYS_CLK_50MHz" 20 ns HIGH 50 %;
@@ -30,20 +13,73 @@ NET "u_tx" IOSTANDARD = LVCMOS33;
 NET "u_rx" LOC = R12;
 NET "u_rx" IOSTANDARD = LVCMOS33;
 
-NET "ant_array1_data[0]" LOC = J13;
-NET "ant_array1_data[1]" LOC = K15;
-NET "ant_array1_data[2]" LOC = K16;
-NET "ant_array1_data[3]" LOC = K14;
-NET "ant_array1_data[4]" LOC = J12;
-NET "ant_array1_data[5]" LOC = J11;
-NET "ant_array1_data[6]" LOC = J16;
-NET "ant_array1_data[7]" LOC = J14;
-
-NET "ant_array1_addr[0]" LOC = C13;
-NET "ant_array1_addr[1]" LOC = A13;
-NET "ant_array1_addr[2]" LOC = A14;
-NET "ant_array1_addr[3]" LOC = B14;
+NET "ant_array0_data[0]" LOC = J13;
+NET "ant_array0_data[1]" LOC = K15;
+NET "ant_array0_data[2]" LOC = K16;
+NET "ant_array0_data[3]" LOC = K14;
+NET "ant_array0_data[4]" LOC = J12;
+NET "ant_array0_data[5]" LOC = J11;
+NET "ant_array0_data[6]" LOC = J16;
+NET "ant_array0_data[7]" LOC = J14;
 
 
+NET "ant_array2_data[0]" LOC = P11;
+NET "ant_array2_data[1]" LOC = P12;
+NET "ant_array2_data[2]" LOC = M11;
+NET "ant_array2_data[3]" LOC = M10;
+NET "ant_array2_data[4]" LOC = M9;
+NET "ant_array2_data[5]" LOC = N9;
+NET "ant_array2_data[6]" LOC = T7;
+NET "ant_array2_data[7]" LOC = T6;
+
+NET "ant_array1_data[0]" LOC = C9;
+NET "ant_array1_data[1]" LOC = A7;
+NET "ant_array1_data[2]" LOC = B8;
+NET "ant_array1_data[3]" LOC = A8;
+NET "ant_array1_data[4]" LOC = B10;
+NET "ant_array1_data[5]" LOC = A9;
+NET "ant_array1_data[6]" LOC = C11;
+NET "ant_array1_data[7]" LOC = A11;
 
 
+NET "ant_array_addr[0]" LOC = C13;
+NET "ant_array_addr[1]" LOC = A13;
+NET "ant_array_addr[2]" LOC = A14;
+NET "ant_array_addr[3]" LOC = B14;
+
+
+
+
+NET "ant_array1_data[1]" IOSTANDARD = LVCMOS33;
+NET "ant_array1_data[2]" IOSTANDARD = LVCMOS33;
+NET "ant_array1_data[3]" IOSTANDARD = LVCMOS33;
+NET "ant_array1_data[0]" IOSTANDARD = LVCMOS33;
+NET "ant_array1_data[5]" IOSTANDARD = LVCMOS33;
+NET "ant_array1_data[4]" IOSTANDARD = LVCMOS33;
+NET "sys_clk" IOSTANDARD = LVCMOS33;
+NET "ant_array1_data[6]" IOSTANDARD = LVCMOS33;
+NET "ant_array1_data[7]" IOSTANDARD = LVCMOS33;
+NET "ant_array_addr[0]" IOSTANDARD = LVCMOS33;
+NET "ant_array_addr[1]" IOSTANDARD = LVCMOS33;
+NET "ant_array_addr[3]" IOSTANDARD = LVCMOS33;
+NET "ant_array_addr[2]" IOSTANDARD = LVCMOS33;
+NET "ant_array0_data[5]" IOSTANDARD = LVCMOS33;
+NET "ant_array0_data[4]" IOSTANDARD = LVCMOS33;
+NET "ant_array0_data[0]" IOSTANDARD = LVCMOS33;
+NET "ant_array0_data[3]" IOSTANDARD = LVCMOS33;
+NET "ant_array0_data[7]" IOSTANDARD = LVCMOS33;
+NET "ant_array0_data[6]" IOSTANDARD = LVCMOS33;
+NET "ant_array0_data[1]" IOSTANDARD = LVCMOS33;
+NET "ant_array0_data[2]" IOSTANDARD = LVCMOS33;
+NET "ant_array2_data[2]" IOSTANDARD = LVCMOS33;
+NET "ant_array2_data[1]" IOSTANDARD = LVCMOS33;
+NET "ant_array2_data[0]" IOSTANDARD = LVCMOS33;
+NET "ant_array2_data[5]" IOSTANDARD = LVCMOS33;
+NET "ant_array2_data[3]" IOSTANDARD = LVCMOS33;
+NET "leds_out[1]" IOSTANDARD = LVCMOS33;
+NET "leds_out[0]" IOSTANDARD = LVCMOS33;
+NET "ant_array2_data[4]" IOSTANDARD = LVCMOS33;
+NET "button2_in" IOSTANDARD = LVCMOS33;
+NET "button1_in" IOSTANDARD = LVCMOS33;
+NET "ant_array2_data[6]" IOSTANDARD = LVCMOS33;
+NET "ant_array2_data[7]" IOSTANDARD = LVCMOS33;
