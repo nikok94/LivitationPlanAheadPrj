@@ -60,6 +60,7 @@ architecture Behavioral of antenn_array_x16_control is
     signal freq_step                : std_logic_vector(15 downto 0):= (others => '0');
     signal ampl_byte                : std_logic_vector(8 downto 0):=(others => '0');
     signal ampl_byte_d              : std_logic_vector(8 downto 0):=(others => '0');
+    signal ampl_byte_d1             : std_logic_vector(8 downto 0):=(others => '0');
     signal new_addr_wr_en           : std_logic:= '0';
     signal new_addr_wr_en_d         : std_logic:= '0';
     signal new_addr_wr_en_d1        : std_logic:= '0';
@@ -135,8 +136,6 @@ end process;
 --get_param_addra <= (not new_param_buff_addr) & antenn_address & '0' when antenn_addr_edge = '1' else param_buff_addr & fifo_non_simetric_rd_addr(4 downto 0);
 --get_param_dina <= form_mem_b_addr + 1 when antenn_addr_edge = '1' else fifo_non_simetric_dout;
 --form_mem_byte <= form_mem(to_integer(unsigned(form_mem_b_addr(c_form_mem_addr_length - 1 downto 0))));
-form_mem_byte1 <= '0' & form_mem_byte;
-to_data_out <= (form_mem_byte1)*(ampl_byte_d + 1);
 
 get_param_mem_inst : ENTITY get_param_mem
   PORT map(
@@ -168,12 +167,16 @@ timer_tick_proc:
 
 data_out_valid <= new_addr_wr_en_d2 and not new_addr_wr_en_d1;
 
+
+
 out_process :
   process(clk)
   begin
     if rising_edge(clk) then
-      antenn_data <= to_data_out(15 downto 8);
+      form_mem_byte1 <= '0' & form_mem_byte;
+      to_data_out <= (form_mem_byte1)*(ampl_byte_d1 + 1);
       antenn_addr <= antenn_address_d3;
+      antenn_data <= to_data_out(15 downto 8);
       en_d <= en;
       antenn_address_d1 <= antenn_address;
       antenn_address_d2 <= antenn_address_d1;
@@ -205,6 +208,7 @@ param_read_proc :
         form_mem_b_addr(c_form_mem_addr_length - 1 downto 0) <= param_mem_dout(c_form_mem_addr_length - 1 downto 0);
         ampl_byte(7 downto 0) <= param_mem_dout(23 downto 16);
         ampl_byte_d <= ampl_byte;
+        ampl_byte_d1 <= ampl_byte_d;
     end if;
   end process;
 

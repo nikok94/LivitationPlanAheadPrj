@@ -44,7 +44,8 @@ entity Top is
         ant_array0_data : out std_logic_vector(7 downto 0);
         ant_array1_data : out std_logic_vector(7 downto 0);
         ant_array2_data : out std_logic_vector(7 downto 0);
-        ant_array3_data : out std_logic_vector(7 downto 0)
+        ant_array3_data : out std_logic_vector(7 downto 0);
+        antenn_en       : out std_logic_vector(1 downto 0)
     );
 end Top;
 
@@ -110,6 +111,8 @@ architecture Behavioral of Top is
     signal antenn_data_valid    : std_logic_vector(3 downto 0);
 
 begin
+
+antenn_en <= (others => '0');
 -- UART RX Module
 uart_rx_inst :  entity UART_RX
   generic map(
@@ -397,8 +400,7 @@ antenn_array_x16_control_0 : entity antenn_array_x16_control
       param_mem_wea                 => param_mem_wea(i),
       param_mem_load                => param_mem_load,
       antenn_addr                   => anten_array(i),
-      antenn_data                   => data_array(i),
-      antenn_data_valid             => antenn_data_valid(i)
+      antenn_data                   => data_array(i)
     );
 end generate;
 

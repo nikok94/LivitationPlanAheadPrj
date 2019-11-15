@@ -47,7 +47,11 @@ NET "ant_array_addr[1]" LOC = A13;
 NET "ant_array_addr[2]" LOC = A14;
 NET "ant_array_addr[3]" LOC = B14;
 
+NET "antenn_en[0]" LOC = A12;
+NET "antenn_en[1]" LOC = B12;
 
+NET "antenn_en[0]" IOSTANDARD = LVCMOS33;
+NET "antenn_en[1]" IOSTANDARD = LVCMOS33;
 
 
 NET "ant_array1_data[1]" IOSTANDARD = LVCMOS33;
