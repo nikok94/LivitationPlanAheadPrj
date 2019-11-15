@@ -48,13 +48,14 @@ architecture Behavioral of antenn_16_form_TB is
     signal form_counter             : std_logic_vector(14 downto 0):=(others => '0');
     signal param_mem_adda           : std_logic_vector(5 downto 0):= (others => '0');
     signal param_mem_dina           : std_logic_vector(7 downto 0);
-    signal param_mem_wea            : std_logic;
+    signal param_mem_wea            : std_logic:='0';
     signal param_mem_load           : std_logic;
     signal param_counter            : std_logic_vector(6 downto 0):=(others => '0');
     signal antenn_addr              : std_logic_vector(3 downto 0);
     signal antenn_data              : std_logic_vector(7 downto 0);
     signal antenn_data_valid        : std_logic;
     signal del                      : std_logic;
+    signal ampl                     : std_logic_vector(7 downto 0):=x"0f";
 
 begin
 
@@ -98,10 +99,12 @@ begin
     if param_counter(param_counter'length - 1) = '0' then
       param_counter <= param_counter + 1;
       if param_counter(1 downto 0) = "10" then
-        param_mem_dina <= (others => '1');
+        ampl <= ampl + 3;
+        param_mem_dina <= x"ff";
       else
         param_mem_dina <= (others => '0');
       end if;
+      param_mem_adda <= param_counter(param_counter'length - 2 downto 0);
       param_mem_wea <= '1';
     else
       param_mem_wea <= '0';
@@ -133,8 +136,7 @@ andtenn_control_inst : entity antenn_array_x16_control
       param_mem_wea                 => param_mem_wea,
       param_mem_load                => param_mem_load,
       antenn_addr                   => antenn_addr,
-      antenn_data                   => antenn_data,
-      antenn_data_valid             => antenn_data_valid 
+      antenn_data                   => antenn_data
     );
 
 
