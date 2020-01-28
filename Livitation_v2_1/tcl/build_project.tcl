@@ -31,6 +31,7 @@ add_files -norecurse ../src/blk_mem_gen_v7_3_0/sin_mem.xci
 add_files -norecurse ../src/blk_mem_gen_v7_3_1/get_param_mem.xci
 add_files -norecurse ../src/proc_common_pkg.vhd
 add_files -norecurse ../src/fifo_generator_v9_3_0/uart_tx_fifo.xci
+add_files -norecurse ../src/emmitter_address_gen.vhd
 #add_files -norecurse ../src/sinus_form_generator.vhd
 ########################################################################
 # UCF

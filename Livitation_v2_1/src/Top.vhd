@@ -30,6 +30,7 @@ use work.clock_generator;
 use work.UART_RX;
 use work.UART_TX;
 use work.antenn_array_x16_control;
+use work.emmitter_address_gen;
 use work.uart_tx_fifo;
 
 entity Top is
@@ -54,7 +55,7 @@ architecture Behavioral of Top is
     constant c_freq_hz          : integer := 125000000;
     constant c_boad_rate        : integer := 921600;
     constant g_CLKS_PER_BIT     : integer := c_freq_hz/c_boad_rate;
-    type state_machine          is (idle, read_command, send_confirm, load_sinus, load_param, load_param_cont, chip_id_req, send_chip_id, get_num_emitter);
+    type state_machine          is (idle, read_command, send_confirm, load_sinus, load_param, load_param_cont, chip_id_req, send_chip_id, get_addr_emitter_array);
     signal state, next_state    : state_machine;
     signal clk_counter          : std_logic_vector(25 downto 0);
     signal counter25_d          : std_logic;
@@ -76,8 +77,8 @@ architecture Behavioral of Top is
     signal button1_in_d         : std_logic_vector(3 downto 0);
     signal rst                  : std_logic;
     signal confirm_push_en      : std_logic;
-    signal sin_mem_adda         : std_logic_vector(14 downto 0);
-    signal sin_mem_wea          : std_logic;
+    signal form_mem_adda        : std_logic_vector(13 downto 0);
+    signal form_mem_wea         : std_logic;
     signal sin_mem_addb         : std_logic_vector(10 downto 0);
     signal sin_mem_dout         : std_logic_vector(7 downto 0);
     signal uart_rx_byte         : std_logic_vector(7 downto 0);
@@ -86,7 +87,7 @@ architecture Behavioral of Top is
     signal param_mem_adda       : std_logic_vector(6 downto 0);
     signal param_mem_dina       : std_logic_vector(7 downto 0);
     signal param_mem_wea        : std_logic_vector(3 downto 0);
-    signal param_mem_load       : std_logic;
+    signal param_apply       : std_logic;
     signal antenn_addr          : std_logic_vector(3 downto 0);
     signal uart_tx_byte         : std_logic_vector(7 downto 0);
     signal uart_tx_done         : std_logic;
@@ -103,13 +104,15 @@ architecture Behavioral of Top is
     signal uart_tx_fifo_empty   : std_logic;
     signal uart_tx_fifo_valid   : std_logic;
     signal uart_tx_en           : std_logic;
-    signal num_emit_byte        : std_logic_vector(7 downto 0);
+    signal addr_array_emitter        : std_logic_vector(7 downto 0);
     type ant_addr_type  is array (3 downto 0) of std_logic_vector(3 downto 0);
     signal anten_array          : ant_addr_type;
     type ant_data_type  is array (3 downto 0) of std_logic_vector(7 downto 0);
     signal data_array           : ant_data_type;
     signal antenn_data_valid    : std_logic_vector(3 downto 0);
-
+    
+    signal emmiter_addr         : std_logic_vector(3 downto 0);
+    signal emmiter_addr_wr_en    : std_logic;
 begin
 
 antenn_en <= (others => '0');
@@ -172,13 +175,14 @@ sync_proc :
   end process;
 
 out_proc :
-  process(state, uart_rx_byte_valid, num_emit_byte)
+  process(state, uart_rx_byte_valid, addr_array_emitter)
   begin
     confirm_push_en <= '0';
     rst_uart <= '0';
-    sin_mem_wea <= '0';
-    param_mem_load <= '0';
+    form_mem_wea <= '0';
+    param_apply <= '0';
     uart_tx_en <= '0';
+    param_mem_wea <= (others => '0');
       case state is 
         when idle => 
           rst_uart <= '1';
@@ -186,22 +190,22 @@ out_proc :
           uart_tx_en <= '1';
           uart_tx_fifo_din <= chip_id_byte;
         when load_sinus => 
-          sin_mem_wea <= uart_rx_byte_valid;
+          form_mem_wea <= uart_rx_byte_valid;
         when load_param =>
-          case num_emit_byte is
+          case addr_array_emitter is
             when x"00" =>
-              param_mem_wea <= "0001";
+              param_mem_wea(0) <= uart_rx_byte_valid;
             when x"01" =>
-              param_mem_wea <= "0010";
+              param_mem_wea(1) <= uart_rx_byte_valid;
             when x"02" =>
-              param_mem_wea <= "0100";
+              param_mem_wea(2) <= uart_rx_byte_valid;
             when x"03" =>
-              param_mem_wea <= "1000";
+              param_mem_wea(3) <= uart_rx_byte_valid;
             when others =>
-              param_mem_wea <= "0000";
+              param_mem_wea <= (others => '0');
           end case;
         when load_param_cont =>
-          param_mem_load <= '1';
+          param_apply <= '1';
         when send_chip_id =>
           uart_tx_en <= '1';
           uart_tx_fifo_din <= chip_id_byte;
@@ -210,7 +214,7 @@ out_proc :
   end process;
 
 next_state_proc :
-  process(state, uart_rx_byte_valid, uart_rx_byte, sin_mem_adda, param_mem_adda, chip_id_req_error, chip_id_req_counter, chip_id_send_counter)
+  process(state, uart_rx_byte_valid, uart_rx_byte, form_mem_adda, param_mem_adda, chip_id_req_error, chip_id_req_counter, chip_id_send_counter)
   begin
     next_state <= state;
       case state is
@@ -226,7 +230,7 @@ next_state_proc :
               when x"4C" =>
                 next_state <= load_sinus;
               when x"43" =>
-                next_state <= get_num_emitter;
+                next_state <= get_addr_emitter_array;
               when x"40" => 
                 next_state <= chip_id_req;
               when x"4E" => 
@@ -236,12 +240,12 @@ next_state_proc :
             end case;
           end if;
         when load_sinus =>
-          if (sin_mem_adda(sin_mem_adda'length - 1) = '1') then
+          if (form_mem_adda(form_mem_adda'length - 1) = '1') then
             next_state <= send_confirm;
           end if;
-        when get_num_emitter => 
+        when get_addr_emitter_array => 
           if (uart_rx_byte_valid = '1') then
-            num_emit_byte <= uart_rx_byte;
+            next_state <= load_param;
           end if;
         when load_param => 
           if (param_mem_adda(param_mem_adda'length - 1) = '1') then
@@ -266,6 +270,18 @@ next_state_proc :
           next_state <= idle;
       end case;
   end process;
+
+get_addr_emitter_array_proc :
+process(clk_125MHz)
+begin
+  if rising_edge(clk_125MHz) then
+    if (state = get_addr_emitter_array) then
+      if (uart_rx_byte_valid = '1') then
+        addr_array_emitter <= uart_rx_byte;
+      end if;
+    end if;
+  end if;
+end process;
 
 send_chip_id_proc :
   process(clk_125MHz)
@@ -362,10 +378,10 @@ sin_mem_adda_proc :
   begin 
     if rising_edge(clk_125MHz) then
       if (state = idle) then
-        sin_mem_adda <= (others => '0');
+        form_mem_adda <= (others => '0');
       elsif (state = load_sinus) then
         if (uart_rx_byte_valid = '1') then
-          sin_mem_adda <= sin_mem_adda + 1;
+          form_mem_adda <= form_mem_adda + 1;
         end if;
       end if;
     end if;
@@ -385,26 +401,44 @@ param_mem_adda_proc :
     end if;
   end process;
 
+emmitter_address_gen_inst : entity emmitter_address_gen
+    Generic map(
+      c_emmit_addr_length           => emmiter_addr'length,
+      c_div_count_max_length        => 4
+    )
+    Port map( 
+      clk                           => clk_125MHz,
+      en                            => start_en,
+      div_range                     => "1011",
+      addr_out                      => emmiter_addr,
+      addr_wr_en                    => emmiter_addr_wr_en
+    );
+
+
 emmiter_gen_proc : for i in 0 to 3 generate
 begin
 antenn_array_x16_control_0 : entity antenn_array_x16_control 
     Port map( 
       clk                           => clk_125MHz,
       --rst                           => rst,
-      form_mem_wea                  => sin_mem_wea,
-      form_mem_addra                => sin_mem_adda(sin_mem_adda'length - 2 downto 0),
+      form_mem_wea                  => form_mem_wea,
+      form_mem_addra                => form_mem_adda(form_mem_adda'length - 2 downto 0),
       form_mem_dina                 => uart_rx_byte,
-      en                            => start_en,
+
+      emmiter_address               => emmiter_addr,
+      emmiter_address_wr_en         => emmiter_addr_wr_en,
+
       param_mem_adda                => param_mem_adda(param_mem_adda'length - 2 downto 0),
       param_mem_dina                => uart_rx_byte,
       param_mem_wea                 => param_mem_wea(i),
-      param_mem_load                => param_mem_load,
-      antenn_addr                   => anten_array(i),
-      antenn_data                   => data_array(i)
+      param_apply                   => param_apply,
+      
+      emmiter_data                  => data_array(i),
+      emmiter_data_valid            => antenn_data_valid(i)
     );
 end generate;
 
-ant_array_addr  <= anten_array(0);
+ant_array_addr  <= emmiter_addr;
 ant_array0_data <= data_array(0);
 ant_array1_data <= data_array(1);
 ant_array2_data <= data_array(2);
