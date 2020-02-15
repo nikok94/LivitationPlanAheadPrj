@@ -55,7 +55,7 @@ architecture Behavioral of Top is
     constant c_freq_hz          : integer := 125000000;
     constant c_boad_rate        : integer := 921600;
     constant g_CLKS_PER_BIT     : integer := c_freq_hz/c_boad_rate;
-    type state_machine          is (idle, read_command, send_confirm, load_sinus, load_param, load_param_cont, chip_id_req, send_chip_id, get_addr_emitter_array);
+    type state_machine          is (idle, read_command, send_confirm, load_form, load_param, load_param_cont, chip_id_req, send_chip_id, get_addr_set_param, get_addr_set_form);
     signal state, next_state    : state_machine;
     signal clk_counter          : std_logic_vector(25 downto 0);
     signal counter25_d          : std_logic;
@@ -78,7 +78,7 @@ architecture Behavioral of Top is
     signal rst                  : std_logic;
     signal confirm_push_en      : std_logic;
     signal form_mem_adda        : std_logic_vector(13 downto 0);
-    signal form_mem_wea         : std_logic;
+    signal form_mem_wea         : std_logic_vector(3 downto 0);
     signal sin_mem_addb         : std_logic_vector(10 downto 0);
     signal sin_mem_dout         : std_logic_vector(7 downto 0);
     signal uart_rx_byte         : std_logic_vector(7 downto 0);
@@ -189,7 +189,7 @@ out_proc :
         when send_confirm => 
           uart_tx_en <= '1';
           uart_tx_fifo_din <= chip_id_byte;
-        when load_sinus => 
+        when load_form => 
           form_mem_wea <= uart_rx_byte_valid;
         when load_param =>
           case addr_array_emitter is
@@ -203,6 +203,19 @@ out_proc :
               param_mem_wea(3) <= uart_rx_byte_valid;
             when others =>
               param_mem_wea <= (others => '0');
+          end case;
+        when load_form =>
+          case addr_array_emitter is
+            when x"00" =>
+              form_mem_wea(0) <= uart_rx_byte_valid;
+            when x"01" =>
+              form_mem_wea(1) <= uart_rx_byte_valid;
+            when x"02" =>
+              form_mem_wea(2) <= uart_rx_byte_valid;
+            when x"03" =>
+              form_mem_wea(3) <= uart_rx_byte_valid;
+            when others =>
+              form_mem_wea <= (others => '0');
           end case;
         when load_param_cont =>
           param_apply <= '1';
@@ -228,9 +241,9 @@ next_state_proc :
               when x"41" =>
                 next_state <= send_confirm;
               when x"4C" =>
-                next_state <= load_sinus;
+                next_state <= get_addr_set_form;
               when x"43" =>
-                next_state <= get_addr_emitter_array;
+                next_state <= get_addr_set_param;
               when x"40" => 
                 next_state <= chip_id_req;
               when x"4E" => 
@@ -239,11 +252,15 @@ next_state_proc :
                 next_state <= idle;
             end case;
           end if;
-        when load_sinus =>
+        when get_addr_set_form =>
+          if (uart_rx_byte_valid = '1') then
+            next_state <= load_form;
+          end if;
+        when load_form =>
           if (form_mem_adda(form_mem_adda'length - 1) = '1') then
             next_state <= send_confirm;
           end if;
-        when get_addr_emitter_array => 
+        when get_addr_set_param => 
           if (uart_rx_byte_valid = '1') then
             next_state <= load_param;
           end if;
@@ -275,7 +292,7 @@ get_addr_emitter_array_proc :
 process(clk_125MHz)
 begin
   if rising_edge(clk_125MHz) then
-    if (state = get_addr_emitter_array) then
+    if (state = get_addr_set_param) or(state = get_addr_set_form) then
       if (uart_rx_byte_valid = '1') then
         addr_array_emitter <= uart_rx_byte;
       end if;
@@ -379,7 +396,7 @@ sin_mem_adda_proc :
     if rising_edge(clk_125MHz) then
       if (state = idle) then
         form_mem_adda <= (others => '0');
-      elsif (state = load_sinus) then
+      elsif (state = load_form) then
         if (uart_rx_byte_valid = '1') then
           form_mem_adda <= form_mem_adda + 1;
         end if;
@@ -421,7 +438,7 @@ antenn_array_x16_control_0 : entity antenn_array_x16_control
     Port map( 
       clk                           => clk_125MHz,
       --rst                           => rst,
-      form_mem_wea                  => form_mem_wea,
+      form_mem_wea                  => form_mem_wea(i),
       form_mem_addra                => form_mem_adda(form_mem_adda'length - 2 downto 0),
       form_mem_dina                 => uart_rx_byte,
 
