@@ -79,6 +79,7 @@ architecture Behavioral of Top is
     signal confirm_push_en      : std_logic;
     signal form_mem_adda        : std_logic_vector(13 downto 0);
     signal form_mem_wea         : std_logic_vector(3 downto 0);
+    signal N_counter            : std_logic_vector(form_mem_adda'length - 2 downto 0);
     signal sin_mem_addb         : std_logic_vector(10 downto 0);
     signal sin_mem_dout         : std_logic_vector(7 downto 0);
     signal uart_rx_byte         : std_logic_vector(7 downto 0);
@@ -113,6 +114,7 @@ architecture Behavioral of Top is
     
     signal emmiter_addr         : std_logic_vector(3 downto 0);
     signal emmiter_addr_wr_en    : std_logic;
+    signal N_counter_edge       : std_logic;
 begin
 
 antenn_en <= (others => '0');
@@ -426,8 +428,23 @@ emmitter_address_gen_inst : entity emmitter_address_gen
       en                            => start_en,
       div_range                     => "1011",
       addr_out                      => emmiter_addr,
-      addr_wr_en                    => emmiter_addr_wr_en
+      addr_wr_en                    => emmiter_addr_wr_en,
+      N_counter_edge                => N_counter_edge
     );
+
+N_counter_proc : 
+process(clk_125MHz, start_en)
+begin
+  if start_en = '0' then
+    N_counter <= (others => '0');
+  elsif rising_edge(clk_125MHz) then
+    if (N_counter_edge = '1') then
+      N_counter <= N_counter + 1;
+    end if;
+  end if;
+end process;
+
+
 
 
 emmiter_gen_proc : for i in 0 to 3 generate
@@ -447,6 +464,8 @@ antenn_array_x16_control_0 : entity antenn_array_x16_control
       param_mem_dina                => uart_rx_byte,
       param_mem_wea                 => param_mem_wea(i),
       param_apply                   => param_apply,
+      
+      N_counter                     => N_counter,
       
       emmiter_data                  => data_array(i),
       emmiter_data_valid            => antenn_data_valid(i)

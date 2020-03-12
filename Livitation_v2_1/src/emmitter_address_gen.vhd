@@ -42,13 +42,15 @@ entity emmitter_address_gen is
       en            : in std_logic;
       div_range     : in std_logic_vector(c_div_count_max_length - 1 downto 0);
       addr_out      : out std_logic_vector(c_emmit_addr_length - 1 downto 0);
-      addr_wr_en    : out std_logic
+      addr_wr_en    : out std_logic;
+      N_counter_edge: out std_logic
     );
 end emmitter_address_gen;
 
 architecture Behavioral of emmitter_address_gen is
     signal clk_counter      : std_logic_vector(c_div_count_max_length - 1 downto 0):= (others => '0');
     signal addr_counter     : std_logic_vector(c_emmit_addr_length - 1 downto 0);
+    constant addr_max_count : std_logic_vector(c_emmit_addr_length - 1 downto 0) := (others => '1');
     signal addr_edge_sig    : std_logic;
     signal addr_edge        : std_logic;
     
@@ -69,6 +71,23 @@ begin
     end if;
   end if;
 end process;
+
+N_counter_edge_proc :
+  process(clk, en)
+  begin
+    if (en = '0') then
+      N_counter_edge <= '0';
+    elsif rising_edge(clk) then
+      if (addr_edge_sig = '1') then
+        if (addr_max_count = addr_counter) then
+          N_counter_edge <= '1';
+        end if;
+      else
+        N_counter_edge <= '0';
+      end if;
+    end if;
+  end process;
+
 
 antenn_address_proc :
   process(clk, en)
@@ -93,5 +112,6 @@ process(clk)
       addr_wr_en <= addr_edge;
     end if;
   end process;
+  
 
 end Behavioral;

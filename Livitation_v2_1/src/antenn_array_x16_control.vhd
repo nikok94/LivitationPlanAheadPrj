@@ -39,7 +39,8 @@ entity antenn_array_x16_control is
       param_mem_wea                 : in std_logic;
 
       param_apply                   : in std_logic;
-      N                             : in std_logic_vector(emmiter_address_length - 1 downto 0);
+
+      N_counter                     : in std_logic_vector(c_form_mem_addr_length - 1 downto 0);
 
       emmiter_address               : in std_logic_vector(emmiter_address_length - 1 downto 0);
       emmiter_address_wr_en         : in std_logic;
@@ -132,20 +133,24 @@ fifo_non_simetric_inst : entity fifo_non_simetric
 
 fifo_non_simetric_rd_en <= not (fifo_non_simetric_empty or data_valid);
 
-process(clk)
-begin
-  if rising_edge(clk) then
-    if (data_valid = '1') then
-      get_param_wea <= '1';
-      get_param_addra <= param_mem_addb & '0';
-      get_param_dina <= form_mem_b_addr + 1;
-    else
-      get_param_wea   <= fifo_non_simetric_rd_en;
-      get_param_addra <= (not param_buff_addr) & fifo_non_simetric_rd_addr(4 downto 0);
-      get_param_dina  <= fifo_non_simetric_dout;
-    end if;
-  end if;
-end process;
+--process(clk)
+--begin
+--  if rising_edge(clk) then
+--    if (data_valid = '1') then
+--      get_param_wea <= '1';
+--      get_param_addra <= param_mem_addb & '0';
+--      get_param_dina <= form_mem_b_addr + 1;
+--    else
+--      get_param_wea   <= fifo_non_simetric_rd_en;
+--      get_param_addra <= (not param_buff_addr) & fifo_non_simetric_rd_addr(4 downto 0);
+--      get_param_dina  <= fifo_non_simetric_dout;
+--      end if;
+--  end if;
+--end process;
+
+get_param_wea   <= fifo_non_simetric_rd_en;
+get_param_addra <= (not param_buff_addr) & fifo_non_simetric_rd_addr(4 downto 0);
+get_param_dina  <= fifo_non_simetric_dout;
 
 get_param_mem_inst : ENTITY get_param_mem
   PORT map(
@@ -181,7 +186,7 @@ param_read_proc :
   begin
     if rising_edge(clk) then
       if (new_addr_d = '1') then
-        form_mem_b_addr(c_form_mem_addr_length - 1 downto 0) <= param_mem_dout(c_form_mem_addr_length - 1 downto 0);
+        form_mem_b_addr(c_form_mem_addr_length - 1 downto 0) <= param_mem_dout(c_form_mem_addr_length - 1 downto 0) +  N_counter;
         form_mem_b_addr(form_mem_b_addr'length - 1 downto c_form_mem_addr_length) <= (others => '1');
         ampl_byte(7 downto 0) <= param_mem_dout(23 downto 16);
         new_form_byte <= '1';
@@ -191,7 +196,6 @@ param_read_proc :
       new_form_byte_d <= new_form_byte;
     end if;
   end process;
-
 
 form_mem_inst : ENTITY sin_mem 
   PORT map(
