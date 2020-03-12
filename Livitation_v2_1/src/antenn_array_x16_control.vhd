@@ -39,6 +39,7 @@ entity antenn_array_x16_control is
       param_mem_wea                 : in std_logic;
 
       param_apply                   : in std_logic;
+      N                             : in std_logic_vector(emmiter_address_length - 1 downto 0);
 
       emmiter_address               : in std_logic_vector(emmiter_address_length - 1 downto 0);
       emmiter_address_wr_en         : in std_logic;
@@ -181,6 +182,7 @@ param_read_proc :
     if rising_edge(clk) then
       if (new_addr_d = '1') then
         form_mem_b_addr(c_form_mem_addr_length - 1 downto 0) <= param_mem_dout(c_form_mem_addr_length - 1 downto 0);
+        form_mem_b_addr(form_mem_b_addr'length - 1 downto c_form_mem_addr_length) <= (others => '1');
         ampl_byte(7 downto 0) <= param_mem_dout(23 downto 16);
         new_form_byte <= '1';
       else

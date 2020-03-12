@@ -179,7 +179,7 @@ out_proc :
   begin
     confirm_push_en <= '0';
     rst_uart <= '0';
-    form_mem_wea <= '0';
+    form_mem_wea <= (others => '0');
     param_apply <= '0';
     uart_tx_en <= '0';
     param_mem_wea <= (others => '0');
@@ -189,8 +189,6 @@ out_proc :
         when send_confirm => 
           uart_tx_en <= '1';
           uart_tx_fifo_din <= chip_id_byte;
-        when load_form => 
-          form_mem_wea <= uart_rx_byte_valid;
         when load_param =>
           case addr_array_emitter is
             when x"00" =>
