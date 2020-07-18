@@ -47,8 +47,9 @@ end antenn_array_control;
 
 architecture Behavioral of antenn_array_control is
   signal c_addr_max_width           : integer := natural(log2(real(c_form_memory_length)));
-  signal params0                    : std_logic_vector(c_num_emmiter*3 * 8- 1 downto 0):=(others => '0');
-  signal params1                    : std_logic_vector(c_num_emmiter*3 * 8- 1 downto 0):=(others => '0');
+  type params_array          is array (0 to c_num_emmiter*3 - 1) of std_logic_vector(7 downto 0);
+  signal params0                    : params_array;
+  signal params1                    : params_array;
   signal params_low_active          : std_logic:= '0';
   signal n_counter_d0               : std_logic_vector(15 downto 0):=(others => '0');
   signal ampl                       : std_logic_vector(7 downto 0):=(others => '0');
@@ -63,7 +64,6 @@ architecture Behavioral of antenn_array_control is
   signal res                        : std_logic_vector(15 downto 0);
   signal add_out                    : std_logic_vector(natural(log2(real(c_num_emmiter)))-1 downto 0);
   signal add_out_d0                 : std_logic_vector(natural(log2(real(c_num_emmiter)))-1 downto 0);
-  signal add_out_d1                 : std_logic_vector(natural(log2(real(c_num_emmiter)))-1 downto 0);
 
 begin
 params_process :
@@ -72,9 +72,9 @@ params_process :
     if rising_edge(clk) then
       if (param_mem_wea = '1') then
         if (params_low_active = '1') then
-          params1(param_mem_adda*8 + 7 downto param_mem_adda*8) <= param_mem_dina;
+          params1(param_mem_adda) <= param_mem_dina;
         else
-          params0(param_mem_adda*8 + 7 downto param_mem_adda*8) <= param_mem_dina;
+          params0(param_mem_adda) <= param_mem_dina;
         end if;
       end if;
     end if;
@@ -94,11 +94,11 @@ process(clk)
 begin
   if rising_edge(clk) then
     if (params_low_active = '1') then
-      next_addr_offset <= params0(emmiter_address*3*8 + 15 downto emmiter_address*3*8);
-      ampl <= params0(emmiter_address*3*8 + 23 downto emmiter_address*3*8 + 16);
+      next_addr_offset <= params0(emmiter_address + 1) & params0(emmiter_address);
+      ampl <= params0(emmiter_address + 2);
     else
-      next_addr_offset <= params1(emmiter_address*3*8 + 15 downto emmiter_address*3*8);
-      ampl <= params1(emmiter_address*3*8 + 23 downto emmiter_address*3*8 + 16);
+      next_addr_offset <= params1(emmiter_address + 1) & params1(emmiter_address);
+      ampl <= params1(emmiter_address + 2);
     end if;
     n_counter_d0 <= n_counter;
     ampl_d0 <= ampl;
