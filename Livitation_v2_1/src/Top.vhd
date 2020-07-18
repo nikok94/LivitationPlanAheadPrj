@@ -23,13 +23,13 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_unsigned.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use IEEE.Numeric_Std.ALL;
+use IEEE.MATH_REAL.ALL;
 
 library work;
 use work.clock_generator;
 use work.UART_RX;
 use work.UART_TX;
-use work.antenn_array_x16_control;
+use work.antenn_array_control;
 use work.emmitter_address_gen;
 use work.uart_tx_fifo;
 
@@ -46,6 +46,10 @@ entity Top is
         ant_array1_data : out std_logic_vector(7 downto 0);
         ant_array2_data : out std_logic_vector(7 downto 0);
         ant_array3_data : out std_logic_vector(7 downto 0);
+        ant_array4_data : out std_logic_vector(7 downto 0);
+        ant_array5_data : out std_logic_vector(7 downto 0);
+        ant_array6_data : out std_logic_vector(7 downto 0);
+        ant_array7_data : out std_logic_vector(7 downto 0);
         antenn_en       : out std_logic_vector(1 downto 0)
     );
 end Top;
@@ -55,6 +59,7 @@ architecture Behavioral of Top is
     constant c_freq_hz          : integer := 125000000;
     constant c_boad_rate        : integer := 921600;
     constant g_CLKS_PER_BIT     : integer := c_freq_hz/c_boad_rate;
+    constant c_form_memory_length : integer := 8192;
     type state_machine          is (idle, read_command, send_confirm, load_form, load_param, load_param_cont, chip_id_req, send_chip_id, get_addr_set_param, get_addr_set_form);
     signal state, next_state    : state_machine;
     signal clk_counter          : std_logic_vector(25 downto 0);
@@ -77,17 +82,17 @@ architecture Behavioral of Top is
     signal button1_in_d         : std_logic_vector(3 downto 0);
     signal rst                  : std_logic;
     signal confirm_push_en      : std_logic;
-    signal form_mem_adda        : std_logic_vector(13 downto 0);
-    signal form_mem_wea         : std_logic_vector(3 downto 0);
-    signal N_counter            : std_logic_vector(form_mem_adda'length - 2 downto 0);
+    signal form_mem_adda        : std_logic_vector(natural(log2(real(c_form_memory_length))) downto 0);
+    signal form_mem_wea         : std_logic_vector(7 downto 0);
+    signal N_counter            : std_logic_vector(15 downto 0);
     signal sin_mem_addb         : std_logic_vector(10 downto 0);
     signal sin_mem_dout         : std_logic_vector(7 downto 0);
     signal uart_rx_byte         : std_logic_vector(7 downto 0);
     signal uart_rx_byte_valid   : std_logic;
     signal contrl_reg           : std_logic_vector(7 downto 0);
-    signal param_mem_adda       : std_logic_vector(6 downto 0);
+    signal param_mem_adda       : integer;
     signal param_mem_dina       : std_logic_vector(7 downto 0);
-    signal param_mem_wea        : std_logic_vector(3 downto 0);
+    signal param_mem_wea        : std_logic_vector(7 downto 0);
     signal param_apply       : std_logic;
     signal antenn_addr          : std_logic_vector(3 downto 0);
     signal uart_tx_byte         : std_logic_vector(7 downto 0);
@@ -106,18 +111,16 @@ architecture Behavioral of Top is
     signal uart_tx_fifo_valid   : std_logic;
     signal uart_tx_en           : std_logic;
     signal addr_array_emitter        : std_logic_vector(7 downto 0);
-    type ant_addr_type  is array (3 downto 0) of std_logic_vector(3 downto 0);
-    signal anten_array          : ant_addr_type;
-    type ant_data_type  is array (3 downto 0) of std_logic_vector(7 downto 0);
+    type ant_addr_type  is array (7 downto 0) of std_logic_vector(4 downto 0);
+    signal anten_array_addr     : ant_addr_type;
+    type ant_data_type  is array (7 downto 0) of std_logic_vector(7 downto 0);
     signal data_array           : ant_data_type;
     signal antenn_data_valid    : std_logic_vector(3 downto 0);
     
-    signal emmiter_addr         : std_logic_vector(3 downto 0);
-    signal emmiter_addr_wr_en    : std_logic;
-    signal N_counter_edge       : std_logic;
+    signal emmiter_addr         : integer;
+
 begin
 
-antenn_en <= (others => '0');
 -- UART RX Module
 uart_rx_inst :  entity UART_RX
   generic map(
@@ -201,6 +204,14 @@ out_proc :
               param_mem_wea(2) <= uart_rx_byte_valid;
             when x"03" =>
               param_mem_wea(3) <= uart_rx_byte_valid;
+            when x"04" =>
+              param_mem_wea(4) <= uart_rx_byte_valid;
+            when x"05" =>
+              param_mem_wea(5) <= uart_rx_byte_valid;
+            when x"06" =>
+              param_mem_wea(6) <= uart_rx_byte_valid;
+            when x"07" =>
+              param_mem_wea(7) <= uart_rx_byte_valid;
             when others =>
               param_mem_wea <= (others => '0');
           end case;
@@ -214,6 +225,14 @@ out_proc :
               form_mem_wea(2) <= uart_rx_byte_valid;
             when x"03" =>
               form_mem_wea(3) <= uart_rx_byte_valid;
+            when x"04" =>
+              form_mem_wea(4) <= uart_rx_byte_valid;
+            when x"05" =>
+              form_mem_wea(5) <= uart_rx_byte_valid;
+            when x"06" =>
+              form_mem_wea(6) <= uart_rx_byte_valid;
+            when x"07" =>
+              form_mem_wea(7) <= uart_rx_byte_valid;
             when others =>
               form_mem_wea <= (others => '0');
           end case;
@@ -265,7 +284,7 @@ next_state_proc :
             next_state <= load_param;
           end if;
         when load_param => 
-          if (param_mem_adda(param_mem_adda'length - 1) = '1') then
+          if (param_mem_adda >= 32*3) then
             next_state <= send_confirm;
           end if;
         when load_param_cont => 
@@ -409,7 +428,7 @@ param_mem_adda_proc :
   begin 
     if rising_edge(clk_125MHz) then
       if (state = idle) then
-        param_mem_adda <= (others => '0');
+        param_mem_adda <= 0;
       elsif (state = load_param) then
         if (uart_rx_byte_valid = '1') then
           param_mem_adda <= param_mem_adda + 1;
@@ -420,36 +439,24 @@ param_mem_adda_proc :
 
 emmitter_address_gen_inst : entity emmitter_address_gen
     Generic map(
-      c_emmit_addr_length           => emmiter_addr'length,
-      c_div_count_max_length        => 4
+      c_num_emmiter                 => 32,
+      c_form_memory_length          => c_form_memory_length,
+      c_clk_div                     => 6
     )
     Port map( 
       clk                           => clk_125MHz,
       en                            => start_en,
-      div_range                     => "1011",
       addr_out                      => emmiter_addr,
-      addr_wr_en                    => emmiter_addr_wr_en,
-      N_counter_edge                => N_counter_edge
+      n_counter                     => N_counter
     );
 
-N_counter_proc : 
-process(clk_125MHz, start_en)
+emmiter_gen_proc : for i in 0 to 7 generate
 begin
-  if start_en = '0' then
-    N_counter <= (others => '0');
-  elsif rising_edge(clk_125MHz) then
-    if (N_counter_edge = '1') then
-      N_counter <= N_counter + 1;
-    end if;
-  end if;
-end process;
-
-
-
-
-emmiter_gen_proc : for i in 0 to 3 generate
-begin
-antenn_array_x16_control_0 : entity antenn_array_x16_control 
+antenn_array_control_inst : entity antenn_array_control 
+    generic map (
+      c_form_memory_length          => c_form_memory_length,
+      c_num_emmiter                 => 32
+    )
     Port map( 
       clk                           => clk_125MHz,
       --rst                           => rst,
@@ -458,24 +465,34 @@ antenn_array_x16_control_0 : entity antenn_array_x16_control
       form_mem_dina                 => uart_rx_byte,
 
       emmiter_address               => emmiter_addr,
-      emmiter_address_wr_en         => emmiter_addr_wr_en,
-
-      param_mem_adda                => param_mem_adda(param_mem_adda'length - 2 downto 0),
+      
+      param_mem_adda                => param_mem_adda,
       param_mem_dina                => uart_rx_byte,
       param_mem_wea                 => param_mem_wea(i),
       param_apply                   => param_apply,
       
-      N_counter                     => N_counter,
+      n_counter                     => N_counter,
       
-      emmiter_data                  => data_array(i),
-      emmiter_data_valid            => antenn_data_valid(i)
+      emmiter_addr_out              => anten_array_addr(i),
+      emmiter_data_out              => data_array(i)
     );
 end generate;
 
-ant_array_addr  <= emmiter_addr;
+antenn_en(0) <= not anten_array_addr(0)(4);
+antenn_en(1) <= anten_array_addr(0)(4);
+
+ant_array_addr  <= anten_array_addr(0)(3 downto 0);
 ant_array0_data <= data_array(0);
 ant_array1_data <= data_array(1);
 ant_array2_data <= data_array(2);
 ant_array3_data <= data_array(3);
+ant_array4_data <= data_array(4);
+ant_array5_data <= data_array(5);
+ant_array6_data <= data_array(6);
+ant_array7_data <= data_array(7);
+
+
+
+
 
 end Behavioral;
